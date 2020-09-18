@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<!--(c) 2020 M A Chatterjee -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="4.49812in" height="1.25in" viewBox="0 0 323.865 90"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st4">
+	<v:documentProperties v:langID="1033" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.75}
+		.st2 {fill:#800080;font-family:Calibri;font-size:6.25001em;font-weight:bold}
+		.st3 {fill:#800080;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.24}
+		.st4 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<g v:mID="0" v:index="1" v:groupContext="foregroundPage">
+		<title>Page-1</title>
+		<v:pageProperties v:drawingScale="1" v:pageScale="1" v:drawingUnits="0" v:shadowOffsetX="9" v:shadowOffsetY="-9"/>
+		<g id="group19-1" transform="translate(0.24,-11.3362)" v:mID="19" v:groupContext="group">
+			<title>Sheet.19</title>
+			<g id="shape3-2" v:mID="3" v:groupContext="shape" transform="translate(102.375,-2.16383)">
+				<title>Sheet.3</title>
+				<desc>triops</desc>
+				<v:textBlock v:margins="rect(2,2,2,2)"/>
+				<v:textRect cx="110.25" cy="58.5" width="220.5" height="63"/>
+				<rect x="0" y="27" width="220.5" height="63" class="st1"/>
+				<text x="19.47" y="81" class="st2" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>triops</text>			</g>
+			<g id="group1-5" v:mID="1" v:groupContext="group">
+				<title>Sheet.1</title>
+				<g id="shape2-6" v:mID="2" v:groupContext="shape" transform="translate(31.8841,-24.8999)">
+					<title>Sheet.2</title>
+					<path d="M1.7 90 A13.5094 9.74297 -180 0 0 1.36 74.53 A16.8537 13.6646 -90 0 0 1.7 90 Z" class="st3"/>
+				</g>
+				<g id="shape4-8" v:mID="4" v:groupContext="shape" transform="translate(37.7996,-18.5237)">
+					<title>Sheet.4</title>
+					<path d="M0.34 83.64 A16.8537 13.6646 -90 0 0 5.34 90 A16.5114 15.1683 -180 0 0 4.37 61.77 A16.8537 13.6646 -90
+								 0 0 0 68.17 A13.5094 9.74297 0 0 1 0.34 83.64 Z" class="st3"/>
+				</g>
+				<g id="shape6-10" v:mID="6" v:groupContext="shape" transform="translate(23.5335,-24.0178)">
+					<title>Sheet.6</title>
+					<path d="M1.7 90 A13.5094 9.74297 -180 0 0 1.36 74.53 A16.8537 13.6646 -90 0 0 1.7 90 Z" class="st3"/>
+				</g>
+				<g id="shape7-12" v:mID="7" v:groupContext="shape" transform="translate(0,-13.9466)">
+					<title>Sheet.7</title>
+					<path d="M0 89.9 A19.2999 17.8083 -180 1 0 0 54.49 A25.2601 19.1274 0 0 1 -0 89.9 Z" class="st3"/>
+				</g>
+				<g id="group9-14" transform="translate(49.2118,-52.4837)" v:mID="9" v:groupContext="group">
+					<title>Sheet.9</title>
+					<g id="shape10-15" v:mID="10" v:groupContext="shape" transform="translate(0,-5.84355)">
+						<title>Sheet.10</title>
+						<path d="M9.24 89.96 A10.3435 17.8083 -180 0 0 0 83.27 A13.5378 19.1274 0 0 1 5.97 90 A26.2108 23.8161 0
+									 0 1 9.24 89.96 Z" class="st3"/>
+					</g>
+					<g id="shape11-17" v:mID="11" v:groupContext="shape" transform="translate(10.2485,-4.1546)">
+						<title>Sheet.11</title>
+						<path d="M11.14 90 A11.6235 17.8083 -180 0 0 0 81.65 A15.2131 19.1274 0 0 1 7.01 88.95 A29.4544 23.8161 0
+									 0 1 11.14 90 Z" class="st3"/>
+					</g>
+					<g id="shape12-19" v:mID="12" v:groupContext="shape" transform="translate(21.7684,0)">
+						<title>Sheet.12</title>
+						<path d="M5.9 87.75 A29.092 23.8161 0 0 1 9.49 90 A17.7701 10.5217 -87.65 0 0 -0 78.18 A19.142 13.731 89.17
+									 0 1 5.9 87.75 Z" class="st3"/>
+					</g>
+				</g>
+				<g id="group13-21" transform="translate(49.2118,167.32) scale(1,-1)" v:mID="13" v:groupContext="group">
+					<title>Sheet.13</title>
+					<g id="shape14-22" v:mID="14" v:groupContext="shape" transform="translate(0,-5.84355)">
+						<title>Sheet.14</title>
+						<path d="M9.24 89.96 A10.3435 17.8083 -180 0 0 0 83.27 A13.5378 19.1274 0 0 1 5.97 90 A26.2108 23.8161 0
+									 0 1 9.24 89.96 Z" class="st3"/>
+					</g>
+					<g id="shape15-24" v:mID="15" v:groupContext="shape" transform="translate(10.2485,-4.1546)">
+						<title>Sheet.15</title>
+						<path d="M11.14 90 A11.6235 17.8083 -180 0 0 0 81.65 A15.2131 19.1274 0 0 1 7.01 88.95 A29.4544 23.8161 0
+									 0 1 11.14 90 Z" class="st3"/>
+					</g>
+					<g id="shape16-26" v:mID="16" v:groupContext="shape" transform="translate(21.7684,0)">
+						<title>Sheet.16</title>
+						<path d="M5.9 87.75 A29.092 23.8161 0 0 1 9.49 90 A17.7701 10.5217 -87.65 0 0 -0 78.18 A19.142 13.731 89.17
+									 0 1 5.9 87.75 Z" class="st3"/>
+					</g>
+				</g>
+				<g id="shape17-28" v:mID="17" v:groupContext="shape" transform="translate(43.0232,-8.82079)">
+					<title>Sheet.17</title>
+					<path d="M2.11 88.62 A36.1116 23.8161 -180 1 0 -0 44.3 A29.8854 26.4624 0 0 1 2.11 88.62 ZM37.83 56.48 A2.8468
+								 3.00709 0 1 1 32.13 56.48 A2.8468 3.00709 0 1 1 37.83 56.48 ZM38.21 74.88 A2.8468 3.00709 0 1 1
+								 32.51 74.88 A2.8468 3.00709 0 1 1 38.21 74.88 Z" class="st3"/>
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>
