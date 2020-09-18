@@ -6,7 +6,6 @@
 <html>
 <head>
 <script src="./bitwrench.min.js" type="text/javascript" ></script>
-<link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
 <title>Device Page</title>
 
 </head>
