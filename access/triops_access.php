@@ -130,7 +130,7 @@ function showLoginPasswordProtect($error_msg) {
     input { border: 1px solid black; }
   </style>
   <div style="width:500px; margin-left:auto; margin-right:auto; text-align:center">
-  <div id='logo' style='left:50px;padding-top:7px;'><a href='./index.php'><img src='./logo.png' style='height:70px;width:270px'></img></a><br /><br /></div>
+  <div id='logo' style='left:50px;padding-top:7px;'><a href='./index.php'><img src='../assets/triops-logo.png' style='height:70px;width:270px'></img></a><br /><br /></div>
   
   <form method="post">
     <h3>Enter credentials for access</h3>
