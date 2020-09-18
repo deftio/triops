@@ -5,12 +5,12 @@
 <html>
 <head>
 <script src="./bitwrench.min.js" type="text/javascript" ></script>
-<title>quikvue</title>
+<title>triops</title>
 
 </head>
 
 <body class="bw-def-page-setup bw-font-sans-serif">
-<h1>QuikVue contains pages for debugging quick http / IOT items.</h1>
+<h1>Triops contains pages for debugging quick http / IOT items.</h1>
 <br>
 
 <h2>Simple Checks</h2>
@@ -23,6 +23,6 @@ These pages provide quick debuging access (e.g. hello world type connectivity) t
 <h2>Device Checks</h2>
 These checks show posted data the server received.  For streaming http dumps the server must have redis and php-redis installed.<br>
 <ul>
-</ul>
+	<li><a href="./device.php">devices</a>&nbsp;&nbsp;</li>
 </body>
 </html>
