@@ -3,4 +3,5 @@ node_modules
 *~
 *.log
 *.tgz
+pages/data
 coverage

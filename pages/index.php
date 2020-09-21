@@ -23,10 +23,11 @@ These pages provide quick debuging access (e.g. hello world type connectivity) t
 	<li><a href="./sum.php">sum.php</a>&nbsp;&nbsp;Sums up numbers of any get variabls. Example: sum.php?a=1&b=2 returns 3.</li>
 	<li><a href="./ip.php">ip.php</a>&nbsp;&nbsp;Returns client public IP address. Example: ip.php returns 134.22.342.12 (Note this doesn't account for proxies/NAT etc</li>		
 </ul>
-<h2>Device Checks</h2>
-These checks show posted data the server received.  For streaming http dumps the server must have redis and php-redis installed.<br>
+<h2>Device Data Checks</h2>
+These checks show posted data the server received.  The server must have redis and php-redis installed.<br>
 <ul>
-	<li><a href="./device.php">devices</a>&nbsp;&nbsp;</li>
-	<li><a href="./regdevice.php">Register Device</a>&nbsp;&nbsp;</li>
+	<li><a href="./rawsend.php">post/get data (unregistered)</a>&nbsp;&nbsp;</li>
+	<li><a href="./rawview.php">see last (unregistered) device data send [includes GET and POST]</a>&nbsp;&nbsp;</li>
+</ul>
 </body>
 </html>
