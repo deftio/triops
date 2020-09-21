@@ -9,7 +9,7 @@ Triops is a *simple* web server for debugging IOT hardware with minimal setup.
 ## Intro
 It is written in PHP and can be used on shared hosts (though its streaming section requires access to redis).
 
-You can[site.php](./pages/index.php)
+You can see this [site.php](./pages/index.php)
 
 
 ## Supported Features
@@ -17,10 +17,12 @@ You can[site.php](./pages/index.php)
 Triops contains a few "boiler plate" pages for checking connectivity.  
 
 ### Primitive Checks
+Primitive checks allow a client to use http to get text (non HTML) data which can consoled out (eg at REPL or serial debug).
+
 These are:
 * time check - any call to this page returns plain-text server time w/o any HTML formatting
 * sum - any call to this page allows the client to submit get params which will be numerically summed. userful for basic connectivity formatting checks
-* 
+* ip - see client reported ip at server
 
 
 ### Simple post checks
