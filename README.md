@@ -38,18 +38,29 @@ The following pages allow a device to post data.  However the device must be in 
 * devregister - a page which allows a device to attempt to register.  Only if it is "accepted" (see admin) will that device be able to make user of devpost or devread
 
 ## Requirements & setup
+Assunes apache2 or LAMP/WAMP installed.
 
 PHP 5.x or greater - used for server side logic
 Redis (and PHP redis) - in-memoryy caching server
-SQLite3 - file-based database
+SQLite3 (PHP extension) - file-based database
 
 
 ### example install (also works on WSL on Windows)
 on ubuntu bash with apt:
 ```bash
 
+sudo apt install redis-server
+sudo apt install php php-curl php-redis 
+sudo systemctl restart redis.service
+
 ```
 
+If you're having trouble use redis-cli to trouble shoot that redis is up and running:
+```bash
+redis-cli
+127.0.0.1:6379> ping
+PONG  #  server should respond with this:
+```
 
 ## Liecense
 BSD 2-clause 

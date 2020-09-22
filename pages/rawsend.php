@@ -51,7 +51,7 @@ Submit data to this page via either get encoded vars or http:post.
 		};
 	}
 	catch (Exception $e){
-		echo ("NFW");
+		echo ("NFW"); // no file write
 	}
 	echo ("\n");
 ?>

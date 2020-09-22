@@ -8,6 +8,7 @@
 </head>
 <body class="bw-def-page-setup bw-font-sans-serif">
 <br><h1>Raw Received Data (Unregistered Device)</h1><br>
+<a id='refresh'>Auto Refresh</a>
 <a href="javascript:window.location.href=window.location.href+'?logout=1'">Logout</a><br> <!--html logout -->
 <br>
 
@@ -19,7 +20,8 @@ echo "fetch date: " . date("h:i:sa") . "\n<br>";
 <script>
 var serverData = "no data received";
 var serverDataTimestamp = "none";
-
+var hrefrefresh = (function(){var u = bw.URLParamParse(window.location.href); u["refresh"] = 250; return window.location.href + bw.URLParamPack(u,true)})()
+bw.DOM("#refresh")[0]["href"] = hrefrefresh;
 <?php
 
 try {

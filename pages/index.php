@@ -26,6 +26,7 @@ These pages provide quick debuging access (e.g. hello world type connectivity) t
 <h2>Device Data Checks</h2>
 These checks show posted data the server received.  The server must have redis and php-redis installed.<br>
 <ul>
+	<li><a href="./testrawsend.php">Use a webform to send data to the server as if it were a device.</a>&nbsp;&nbsp;</li>
 	<li><a href="./rawsend.php">post/get data (unregistered)</a>&nbsp;&nbsp;</li>
 	<li><a href="./rawview.php">see last (unregistered) device data send [includes GET and POST]</a>&nbsp;&nbsp;</li>
 </ul>

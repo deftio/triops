@@ -27,15 +27,6 @@ $LOGIN_INFORMATION = array(
   'admin' => 'passwd'
 );
 
---------------------------------------------------------------------
-SAMPLE if you only want to request only password on login form.
-Note: only passwords are listed
-
-$LOGIN_INFORMATION = array(
-  'root',
-  'testpass',
-  'passwd'
-);
 
 --------------------------------------------------------------------
 */
