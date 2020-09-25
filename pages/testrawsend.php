@@ -45,7 +45,7 @@ JSON is permitted (use double quotes for strings)
 <br>
 
 
-<form action="./testdatasend.php" method="post">
+<form action="./testrawsend.php" method="post">
   <label for="data">Write Sample POST data here</label><br>
   <textarea rows="40" style="width:80%;" name="rawpost_data" placeholder='{"deviceid":"aa234923d2d", "sensor_value" : 2343.32}'></textarea><br><br>
   <button onclick="submit">submit</button>
