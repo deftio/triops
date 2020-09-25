@@ -43,6 +43,9 @@ Submit data to this page via either get_encoded vars or http:post.
 		$redis->set('devicex_raw_timestamp', $dd); 
 
 		#store last N in this special list in redis
+		unset($v["raw_post_json_parsed"]);
+		$vstring = json_encode($v);
+		
 		$redis->rpush("unregdev",$vstring);
 		if ($redis->llen("unregdev") >  $triopsConfig["unregdev-maxlen"] )
 			$redis->lpop("unregdev");
