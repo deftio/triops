@@ -1,6 +1,12 @@
-Submit data to this page via either get encoded vars or http:post.
+Submit data to this page via either get_encoded vars or http:post.
 <?php
 	$rawfile = "./data/rawfile.dump";
+
+	#triops redis config (move to config file)
+	$triopsConfig = array (
+		"unregdev-maxlen" => 512,
+		"regdev-maxlen"   => 512
+	);
 
 	$v =  array(
 	  	"raw_query" => "",
@@ -28,8 +34,37 @@ Submit data to this page via either get encoded vars or http:post.
 	
 		$redis = new Redis();
 		$redis->connect("localhost");
-		$redis->set('devicex_raw_send',json_encode($v));
-		$redis->set('devicex_raw_timestamp',  date("h:i:sa"));
+		
+		#special single entry for last 
+		$dd =  date("h:i:sa") ;
+		$v["server_rec_timestamp"] = $dd;
+		$vstring = json_encode($v);
+		$redis->set('devicex_raw_send',$vstring);		
+		$redis->set('devicex_raw_timestamp', $dd); 
+
+		#store last N in this special list in redis
+		$redis->rpush("unregdev",$vstring);
+		if ($redis->llen("unregdev") >  $triopsConfig["unregdev-maxlen"] )
+			$redis->lpop("unregdev");
+
+		#for registered devices handle here
+		/*
+		if ($v["device"] in database = && $v["pw"] in database) {
+			//store in redis
+			$redis->rpush("unregdev",$vstring);
+			if ($redis->llen($v["device"]) >  $triopsRedisConfig["regdev-maxlen"] )
+				$redis->lpop("unregdev");
+
+			if ($triopsConfig["logDeviceData"]) { // store in actual database
+				//openDB()
+				//store( deviceid, data)
+	
+			}
+
+		}
+
+		*/
+
 	}
 	catch (Exception $e) {
 		echo "<h1>redis connect failed</h1>";
