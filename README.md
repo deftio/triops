@@ -42,7 +42,11 @@ Assunes apache2 or LAMP/WAMP installed.
 
 PHP 5.x or greater - used for server side logic
 Redis (and PHP redis) - in-memoryy caching server
-SQLite3 (PHP extension) - file-based database
+SQLite3 (PHP extension) - file-based database (make sure this is installed)
+
+```sh
+sudo apt-get install php7.4-sqlite3
+```
 
 
 ### example install (also works on WSL on Windows)

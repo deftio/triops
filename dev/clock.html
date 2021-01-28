@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<style>
+* {font-family: Arial, Helvetica, sans-serif }   
+html { height: 100%; overflow: hidden}
+body { 
+    height: 100%;  width: 100%;  overflow: hidden;
+    color: #ccb0cc;
+    background-color: #335333;
+}
+.outer {
+    display: table;  height: 100%;  width: 100%;
+}
+.inner {
+    display: table-cell;    vertical-align: middle;    text-align: center;    font-size: 10em;
+}
+</style>
+</head>
+<body>
+<div class="outer"><div class="inner">...</div></div>
+<script>
+setInterval(() => {
+    let t = new Date(); 
+    document.getElementsByClassName("inner")[0].innerHTML = t.toLocaleTimeString()+"<br>"+t.toDateString();
+}, 500);
+</script>
+</body>
+</html>

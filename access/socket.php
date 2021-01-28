@@ -1,10 +1,20 @@
 <?php
+/*
+simple socket server.
+
+invoke at commandline:
+php socket.php
+
+then telent in to get echo backs.  supports multiple clients (up to max clients)
+
+*/
+
 error_reporting(~E_NOTICE);
 set_time_limit (0);
  
 $address = "0.0.0.0";
 $port = 5003;
-$max_clients = 10;
+$max_clients = 35;
 
 #socket timeouts
 $timeoutsec = 20;
