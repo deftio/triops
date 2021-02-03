@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+.space {
+  margin: auto;
+  width: 25%;
+  vertical-align: center;
+}
+.button {
+  
+  transition: box-shadow 0.15s  ;
+  border: 9px solid #b2afa5;
+  border-color: #e1e0dc7e #c9c8c1 #b2afa5;
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.493);
+  background-color: #d1d1d1;
+  color:#242224;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 0;
+  cursor: pointer;
+  
+  text-align: center;
+  
+  padding-top: 5em;
+  padding-bottom: 4em;
+  padding-left: 5.5em;
+  padding-right:5.5em;
+  text-decoration: shadow;
+  line-height: 1em;
+  border-radius: 3em;    
+  
+}
+.button:hover {
+    background-color: #444;
+}
+.a {
+  font-size : 8.5em;
+  font-weight: 600;
+}
+.t {
+  font-size: 4.5em;
+  font-weight: 600;
+}
+.sep {
+  font-size: 1.0em;
+  line-height: 22px;
+}
+
+html { height: 100%; overflow: hidden}
+body { 
+    height: 100%;  width: 100%;  overflow: hidden;
+    /*
+    background-color: #656a6d;
+    */
+    background-image: url(./clouds.png);
+    background-size: cover;
+    background-repeat: none;
+    background-attachment:fixed;
+    background-position: center;
+    
+}
+.outer {
+    display: table;  height: 100%;  width: 100%;
+}
+.inner {
+    display: table-cell;    vertical-align: middle;    text-align: center;    font-size: 10em;
+}
+</style>
+
+</style>
+</head>
+<body>
+
+        <div class="outer"><div class="inner">
+            <button class="button" onclick="doit()">
+                <span class='a'>&#8630;</span>
+                <span class='sep'><br></span>
+                <span class='t'>undo</span>
+              </button>
+        
+        </div></div>
+
+</body>
+<script>
+function doit() {alert("Poof!")}
+</script>
+</html>
