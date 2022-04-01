@@ -12,4 +12,6 @@ echo "SQLite3 versionString:  " .$ver['versionString'] . "<br>";
 echo "SQLite3 versionNumber:  " .$ver['versionNumber'] . "<br>";
 
 #var_dump($ver);
+
+
 ?>

@@ -1,4 +1,4 @@
-<?php //include("../access/triops_access.php"); ?>  <!-- include this pass protect -->
+<?php #include("../access/triops_access.php"); ?>  <!-- include this pass protect -->
 
 <html>
 <head>
@@ -13,7 +13,7 @@
 <br>
 
 <?php
-echo "fetch date: " . date("h:i:sa") . "\n<br>";
+echo "fetch date: <span id='fetch'>" . date("h:i:sa") . "\n</span><br>";
 ?> 
 <div id="timestamp"></div>
 <div id="data"></div>
@@ -57,11 +57,26 @@ bw.DOM("#timestamp","data received timestamp: " + serverDataTimestamp);
 bw.DOM("#data",bw.htmlJSON(serverData));
 var refresh = bw.getURLParam("refresh","none");
 if (refresh != "none") {
-	if (refresh > 100) {
-		setTimeout(function(){ window.location.href = window.location.href; }, refresh);
-
+	if (refresh > 50) {
+		setInterval( getRawFile , refresh);
 	}
 }
+function getRawFile () {
+fetch('./data/rawfile.dump')
+  .then(res => res.blob()) // Gets the response and returns it as a blob
+  .then(blob => {
+    blob.text().then(
+        t => {
+            d = JSON.parse(t);
+            bw.DOM("#fetch",bw.DOM("#fetch",new Date().toTimeString()));
+            bw.DOM("#data",bw.htmlJSON(JSON.parse(d["raw_post_unparsed"])));
+            bw.DOM("#timestamp","data received timestamp: " + d["server_rec_timestamp"]);
+        }
+
+        )
+  })
+}
+getRawFile();
 </script>
 </body>
 
