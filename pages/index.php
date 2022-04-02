@@ -11,9 +11,8 @@
 </head>
 
 <body class="bw-def-page-setup bw-font-sans-serif">
-<div id='logo' style='left:50px;padding-top:7px;'><a href='./index.php'><img src='../assets/triops-logo.png' style='height:70px;width:270px'></img></a><br /><br /></div>
 
-<h1>Triops contains pages for debugging quick http / IOT items.</h1>
+<h1>Kinisi Test Pages</h1>
 <br>
 
 <h2>Simple Checks</h2>
