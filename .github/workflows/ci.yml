@@ -64,5 +64,16 @@ jobs:
           php-version: '8.2'
           extensions: ':sqlite3'
           coverage: none
-      - run: php -r 'exit(class_exists("SQLite3") ? 1 : 0);' || (echo "sqlite3 still loaded" && exit 1)
-      - run: PORT=8797 ./dev/smoke.sh
+      - name: Confirm sqlite3 really is absent
+        # Block scalar, not an inline one: an unquoted "? 1 : 0" contains " : "
+        # and YAML parses that as a mapping, silently breaking the file.
+        run: |
+          if php -r 'exit(class_exists("SQLite3") ? 1 : 0);'; then
+            echo "sqlite3 absent as intended"
+          else
+            echo "::error::sqlite3 is still loaded; this job is not testing what it claims"
+            exit 1
+          fi
+
+      - name: Smoke test on the ndjson fallback
+        run: PORT=8797 ./dev/smoke.sh

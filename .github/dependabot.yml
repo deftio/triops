@@ -1,0 +1,34 @@
+# triops has no runtime dependencies, so there is very little here worth
+# updating and no reason for a steady drip of PRs.
+#
+# app/ depends on nothing. The only manifests in the repo are dev/package.json
+# (Playwright, used solely to record the README GIF) and the pinned action
+# versions in .github/workflows.
+#
+# Note that open-pull-requests-limit: 0 disables *version* update PRs only.
+# Dependabot security alerts still fire — those are the ones worth reading.
+
+version: 2
+
+updates:
+  # Dev tooling. Playwright moving from 1.62 to 1.63 does not matter to anyone;
+  # a security advisory does. Security-only.
+  - package-ecosystem: npm
+    directory: /dev
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+
+  # Pinned action versions do rot, and a broken release workflow is only
+  # discovered at the worst moment. Keep these, but batched into one PR a month
+  # rather than one PR per action.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci

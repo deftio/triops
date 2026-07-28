@@ -1,8 +1,18 @@
 name: release
 
+# Releases are driven by the version in the code, not by a tag you remember to
+# push. Bump TRIOPS_VERSION in app/lib/triops.php, write the CHANGELOG section,
+# push to master — this creates the tag and publishes. Normal pushes where the
+# version has not changed are a no-op.
+#
+# Tagging and releasing happen in the same job on purpose: a tag pushed using
+# GITHUB_TOKEN does not trigger other workflows, so splitting them would leave
+# the release step never running.
+
 on:
   push:
-    tags: ['v*']
+    branches: [master, main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -19,53 +31,84 @@ jobs:
           extensions: sqlite3
           coverage: none
 
-      - name: Tag must match TRIOPS_VERSION
-        # The version const in the bootstrap is the single source of truth, and
-        # status.php reports it — a deployed instance saying 0.2.0 while the tag
-        # says 0.2.1 is worse than useless when someone files a bug.
+      - name: Read the version from the code
+        id: v
         run: |
-          tag="${GITHUB_REF_NAME#v}"
-          src=$(php -r "define('TRIOPS',1); require 'app/lib/triops.php'; echo TRIOPS_VERSION;")
-          echo "tag=$tag  TRIOPS_VERSION=$src"
-          [ "$tag" = "$src" ] || { echo "::error::tag $tag does not match TRIOPS_VERSION $src"; exit 1; }
+          version=$(php -r "require 'app/lib/triops.php'; echo TRIOPS_VERSION;")
+          echo "version=$version"        >> "$GITHUB_OUTPUT"
+          echo "tag=v$version"           >> "$GITHUB_OUTPUT"
+          echo "TRIOPS_VERSION = $version"
 
-      - name: Smoke test before shipping
-        run: ./dev/smoke.sh
-
-      - name: Build the zip
-        # The release artifact is exactly app/, staged as triops/ so it unpacks
-        # with a sensible directory name straight into a web root.
+      - name: Has this version already been released?
+        id: check
         run: |
-          mkdir -p dist stage
-          cp -r app stage/triops
-          rm -rf stage/triops/config.php stage/triops/data/*
-          touch stage/triops/data/.gitkeep
-          (cd stage && zip -rq "../dist/triops-${GITHUB_REF_NAME}.zip" triops)
-          cp "dist/triops-${GITHUB_REF_NAME}.zip" dist/triops.zip
-          (cd dist && sha256sum *.zip > SHA256SUMS)
-          ls -la dist
+          tag="${{ steps.v.outputs.tag }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "release=no" >> "$GITHUB_OUTPUT"
+            echo "$tag already exists — nothing to do."
+          else
+            echo "release=yes" >> "$GITHUB_OUTPUT"
+            echo "$tag is new."
+          fi
 
-      - name: Extract this version's changelog section
-        # Only the notes for the tag being released, not the whole file.
+      - name: Extract the changelog section
+        # Doubles as the guard against an accidental release. If you bumped the
+        # version but have not written the notes yet, this stops here rather
+        # than publishing a release with an empty body.
+        if: steps.check.outputs.release == 'yes'
         run: |
-          tag="${GITHUB_REF_NAME#v}"
-          awk -v v="$tag" '
+          version="${{ steps.v.outputs.version }}"
+          awk -v v="$version" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/         { exit }
             on                     { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "::warning::no CHANGELOG section for $tag; falling back to the full file"
-            cp CHANGELOG.md RELEASE_NOTES.md
+            echo "::error::CHANGELOG.md has no '## [$version]' section. Write the release notes before bumping the version."
+            exit 1
           fi
-          head -5 RELEASE_NOTES.md
+          echo "notes: $(wc -l < RELEASE_NOTES.md) lines"
+
+      - name: Lint
+        if: steps.check.outputs.release == 'yes'
+        run: |
+          find app dev -name '*.php' -exec php -l {} \; > /dev/null
+
+      - name: Smoke test
+        if: steps.check.outputs.release == 'yes'
+        run: ./dev/smoke.sh
+
+      - name: Build the zip
+        # The artifact is exactly app/, staged as triops/ so it unpacks with a
+        # sensible directory name straight into a web root.
+        if: steps.check.outputs.release == 'yes'
+        run: |
+          mkdir -p dist stage
+          cp -r app stage/triops
+          rm -rf stage/triops/config.php stage/triops/data/*
+          touch stage/triops/data/.gitkeep
+          (cd stage && zip -rq "../dist/triops-${{ steps.v.outputs.tag }}.zip" triops)
+          cp "dist/triops-${{ steps.v.outputs.tag }}.zip" dist/triops.zip
+          (cd dist && sha256sum *.zip > SHA256SUMS)
+          ls -la dist
+
+      - name: Tag
+        if: steps.check.outputs.release == 'yes'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.v.outputs.tag }}" -m "triops ${{ steps.v.outputs.version }}"
+          git push origin "${{ steps.v.outputs.tag }}"
 
       - name: Publish
+        if: steps.check.outputs.release == 'yes'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: triops ${{ steps.v.outputs.version }}
+          body_path: RELEASE_NOTES.md
           files: |
-            dist/triops-${{ github.ref_name }}.zip
+            dist/triops-${{ steps.v.outputs.tag }}.zip
             dist/triops.zip
             dist/SHA256SUMS
-          body_path: RELEASE_NOTES.md
           draft: false

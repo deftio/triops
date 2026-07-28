@@ -77,11 +77,26 @@ under sqlite silently breaks every host without the extension.
 Keep file moves in their own commit, separate from content changes. The diff is
 unreviewable otherwise, and this repo gets read as a worked bitwrench example.
 
-## Versioning
+## Releasing
 
-`TRIOPS_VERSION` in `app/lib/triops.php` is the single source of truth. CI
-asserts the git tag matches it. `TRIOPS_API_VERSION` is a separate integer that
-changes only on a breaking `/api` change.
+`TRIOPS_VERSION` in `app/lib/triops.php` is the single source of truth, and the
+release is driven from it — there is no tag to remember to push.
+
+To cut a release:
+
+1. bump `TRIOPS_VERSION`
+2. add a matching `## [x.y.z]` section to `CHANGELOG.md`
+3. push to master
+
+CI reads the version, sees no `vx.y.z` tag yet, runs lint and the smoke test,
+builds the zip, creates the tag, and publishes the release with that changelog
+section as the body. Pushes where the version has not changed do nothing.
+
+The changelog section is also the guard: bump the version without writing the
+notes and the build fails rather than publishing an empty release.
+
+`TRIOPS_API_VERSION` is a separate integer that changes only on a breaking
+`/api` change.
 
 ## Found a bitwrench problem?
 

@@ -43,7 +43,9 @@ has to argue for itself.
 - [x] `llms.txt` and `AGENTS.md`
 - [x] landing page + JS-mocked demo; `dev/build-site.sh` copies shared assets
 - [x] CI: `php -l` on 8.0/8.2/8.4, smoke test on both drivers, one job with sqlite absent
-- [x] release workflow: tag must match `TRIOPS_VERSION`, zip + SHA256SUMS
+- [x] release is version-driven: CI reads `TRIOPS_VERSION`, creates the tag,
+      publishes zip + SHA256SUMS with that version's changelog section as the body
+- [x] dependabot: security-only for the dev npm tooling, grouped monthly for actions
 - [x] all Kinisi branding gone; dead pages and dev toys deleted
 - [x] `socket.php` moved to `dev/`
 
@@ -71,7 +73,8 @@ has to argue for itself.
 - [ ] social preview image so shared links do not look dead
 - [ ] enable GitHub Pages with source = GitHub Actions (not deploy-from-branch)
 - [ ] read `docs/` end to end once more with fresh eyes
-- [ ] tag `v0.2.0` and confirm the release workflow produces a working zip
+- [ ] push to master — CI reads TRIOPS_VERSION, tags v0.2.0 and publishes.
+      No tag to push by hand; bump the const + changelog section is the release.
 
 ## After tagging
 
