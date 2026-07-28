@@ -32,6 +32,26 @@ function code(text) {
   };
 }
 
+/**
+ * A link that looks like a button.
+ *
+ * NOT bw.makeButton — that ignores href entirely and always renders a
+ * <button>, so the navigation silently does nothing. And not an onclick
+ * either: these go to other pages, so they should be real anchors that
+ * middle-click, open-in-new-tab and keyboard navigation all understand.
+ */
+function linkButton(text, href, variant) {
+  return {
+    t: 'a',
+    a: {
+      href: href,
+      class: 'bw_bccl_btn bw_' + (variant || 'primary'),
+      style: 'text-decoration:none;display:inline-block'
+    },
+    c: text
+  };
+}
+
 bw.DOM('#app', { t: 'div', c: [
 
   // ---- hero
@@ -42,9 +62,9 @@ bw.DOM('#app', { t: 'div', c: [
       c: 'A small web server for the other end of your device\'s HTTP connection. ' +
          'Unzip it into a web directory and it runs — no database, no services, no build step, no dependencies.' },
     { t: 'div', a: { style: 'display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.2rem' }, c: [
-      bw.makeButton({ text: 'Try the demo', href: './demo/', variant: 'primary' }),
-      bw.makeButton({ text: 'GitHub', href: REPO, variant: 'secondary' }),
-      bw.makeButton({ text: 'Docs', href: REPO + '/tree/master/docs', variant: 'secondary' })
+      linkButton('Try the demo', './demo/', 'primary'),
+      linkButton('GitHub', REPO, 'secondary'),
+      linkButton('Docs', REPO + '/tree/master/docs', 'secondary')
     ]}
   ], 'padding:3rem 1rem 1rem;max-width:52rem;margin:0 auto'),
 
