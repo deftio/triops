@@ -20,22 +20,28 @@
   stored or transmitted. It exists so you can see the interface before
   installing.
 
-  It deliberately loads the same bitwrench and the same app/assets/triops.js as
-  the real thing, so it cannot drift into showing you a UI that does not exist.
+  It loads the same bitwrench and the same app/assets/triops.js as the real
+  thing, and mirrors the real pages, so it cannot drift far from what you
+  actually get.
+
+  Navigation is hash-based (#view, #send, #status) so the links are real URLs
+  and the back button works. makeNavbar items carry only text/href/active —
+  an onclick on an item is not passed through.
 -->
 
 <div id="app"></div>
 <script>
 bw.loadStyles({ primary: '#006666', secondary: '#cc6633' });
 
-var SITE = window.TRIOPS_SITE || { version: 'dev', repo: 'https://github.com/deftio/triops' };
+var SITE = window.TRIOPS_SITE || { version: 'dev', bitwrench: '?', repo: 'https://github.com/deftio/triops' };
 var REPO = SITE.repo;
+
 var loggedIn = false;
 var timer = null;
 
 // Canned payloads, shaped like things a board actually sends: well-formed JSON,
-// a bare sensor reading, and one that is malformed on purpose — because that is
-// the case a viewer has to handle honestly.
+// a bare sensor reading, form encoding, and one that is malformed on purpose —
+// because that is the case a viewer has to handle honestly.
 var SAMPLES = [
   '{"device":"esp32-01","temp_c":22.4,"humidity":41,"uptime_s":1043,"wifi":{"rssi":-58,"ssid":"lab"}}',
   '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}',
@@ -48,9 +54,8 @@ var SAMPLES = [
 var entries = [];
 var seq = 0;
 
-function addEntry() {
-  var body = SAMPLES[seq % SAMPLES.length];
-  seq++;
+function addEntry(body) {
+  if (body == null) { body = SAMPLES[seq % SAMPLES.length]; seq++; }
   entries.unshift({
     ts: Date.now() / 1000,
     ip: '192.168.1.' + (50 + (seq % 4)),
@@ -66,10 +71,12 @@ function addEntry() {
 
 for (var i = 0; i < 4; i++) addEntry();
 
+// ---------------------------------------------------------------- chrome
+
 function banner() {
   return {
     t: 'div',
-    a: { style: 'background:#cc6633;color:#fff;padding:0.5rem 1rem;text-align:center;font-size:0.9rem' },
+    a: { style: 'background:#cc6633;color:#fff;padding:0.55rem 1rem;text-align:center;font-size:0.9rem' },
     c: [
       { t: 'strong', c: 'Demo. ' },
       { t: 'span', c: 'Nothing here is real — the data is canned and there is no server. ' },
@@ -78,53 +85,136 @@ function banner() {
   };
 }
 
+function currentRoute() {
+  var h = (window.location.hash || '#view').replace('#', '');
+  return ['view', 'send', 'status'].indexOf(h) > -1 ? h : 'view';
+}
+
+function shell(route, body) {
+  return { t: 'div', c: [
+    banner(),
+    bw.makeNavbar({
+      brand: 'triops',
+      brandHref: '#view',
+      items: [
+        { text: 'View',   href: '#view',   active: route === 'view' },
+        { text: 'Send',   href: '#send',   active: route === 'send' },
+        { text: 'Status', href: '#status', active: route === 'status' },
+        { text: 'Log out (demo)', href: '#logout' }
+      ]
+    }),
+    { t: 'div', a: { class: 'bw_container', style: 'padding:1.25rem 1rem 3rem;max-width:52rem;margin:0 auto' }, c: [
+      { t: 'div', a: { style: 'text-align:right;font-size:0.85rem;opacity:0.7;margin-bottom:0.75rem' }, c: [
+        { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
+        { t: 'span', c: '  ·  triops ' + SITE.version }
+      ]},
+      body
+    ]}
+  ]};
+}
+
+// ---------------------------------------------------------------- views
+
 function loginView() {
   bw.DOM('#app', { t: 'div', c: [
     banner(),
-    { t: 'div', a: { class: 'bw_bccl_card', style: 'max-width:26rem;margin:3rem auto;padding:1.5rem' }, c: [
-      { t: 'img', a: { src: '../assets/triops-logo.png', alt: 'triops', style: 'height:56px;margin-bottom:1rem' } },
+    { t: 'div', a: { class: 'bw_bccl_card', style: 'max-width:26rem;margin:3rem auto;padding:1.75rem' }, c: [
+      { t: 'img', a: { src: '../assets/triops-logo.png', alt: 'triops', style: 'height:56px;margin-bottom:1.25rem' } },
       { t: 'p', a: { style: 'opacity:0.75;font-size:0.9rem' }, c: 'Any username and password will do.' },
       { t: 'p', c: [{ t: 'label', c: ['Username', { t: 'br' },
-          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'text', id: 'u', value: 'demo' } }] }] },
+          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'text', value: 'demo' } }] }] },
       { t: 'p', c: [{ t: 'label', c: ['Password', { t: 'br' },
-          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'password', id: 'p', value: 'demo' } }] }] },
-      bw.makeButton({ text: 'Log in', variant: 'primary', onclick: function () { loggedIn = true; appView(); } })
+          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'password', value: 'demo' } }] }] },
+      bw.makeButton({ text: 'Log in', variant: 'primary', onclick: function () {
+        loggedIn = true;
+        if (window.location.hash === '#logout') { window.location.hash = '#view'; }
+        render();
+      }})
     ]}
   ]});
 }
 
-function appView() {
-  bw.DOM('#app', { t: 'div', c: [
-    banner(),
-    bw.makeNavbar({
-      brand: 'triops',
-      brandHref: '#',
-      items: [
-        { text: 'View', href: '#' },
-        { text: 'Send', href: '#' },
-        { text: 'Status', href: '#' },
-        { text: 'Log out (demo)', href: '#' }
-      ]
-    }),
-    { t: 'div', a: { class: 'bw_container', style: 'padding:1rem;max-width:52rem;margin:0 auto' }, c: [
-      { t: 'div', a: { style: 'text-align:right;font-size:0.85rem;opacity:0.7;margin-bottom:0.5rem' }, c: [
-        { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
-        { t: 'span', c: '  ·  triops ' + SITE.version }
-      ]},
-      { t: 'h1', c: 'Received' },
-      { t: 'div', a: { style: 'display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem' }, c: [
-        { t: 'span', c: 'channel: lab' },
-        bw.makeButton({ text: 'Simulate a packet', size: 'sm', onclick: function () { addEntry(); renderEntries(); } }),
-        { t: 'label', a: { style: 'display:flex;gap:0.3rem;align-items:center' }, c: [
-          { t: 'input', a: { type: 'checkbox', onchange: toggleAuto } },
-          { t: 'span', c: 'auto (2s)' }
-        ]}
-      ]},
-      { t: 'div', a: { id: 'entries' }, c: '' }
-    ]}
-  ]});
-  renderEntries();
+function viewBody() {
+  return { t: 'div', c: [
+    { t: 'h1', a: { style: 'margin-top:0' }, c: 'Received' },
+    { t: 'div', a: { style: 'display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-bottom:1.25rem' }, c: [
+      { t: 'span', a: { style: 'opacity:0.75' }, c: 'channel: lab' },
+      bw.makeButton({ text: 'Simulate a packet', size: 'sm',
+        onclick: function () { addEntry(); renderEntries(); } }),
+      { t: 'label', a: { style: 'display:flex;gap:0.35rem;align-items:center' }, c: [
+        { t: 'input', a: { type: 'checkbox', onchange: toggleAuto } },
+        { t: 'span', c: 'auto (2s)' }
+      ]}
+    ]},
+    { t: 'div', a: { id: 'entries' }, c: '' }
+  ]};
 }
+
+function sendBody() {
+  return { t: 'div', c: [
+    { t: 'h1', a: { style: 'margin-top:0' }, c: 'Send test data' },
+    { t: 'p', a: { style: 'max-width:44rem;opacity:0.85' },
+      c: 'In the real thing this posts to the store. Here it just adds to the list — ' +
+         'useful before the hardware exists, and for checking what the viewer does with ' +
+         'a payload your parser would reject.' },
+    { t: 'div', a: { class: 'bw_bccl_card', style: 'padding:1.25rem;max-width:44rem' }, c: [
+      { t: 'p', c: [{ t: 'label', c: ['Channel', { t: 'br' },
+          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'text', value: 'lab' } }] }] },
+      { t: 'p', c: [{ t: 'label', c: ['Payload', { t: 'br' },
+          { t: 'textarea', a: { class: 'bw_bccl_form_control', id: 'payload', rows: 8,
+              placeholder: '{"device":"esp32-01","temp_c":22.4}' } }] }] },
+      bw.makeButton({ text: 'Send', variant: 'primary', onclick: function () {
+        var el = document.getElementById('payload');
+        var body = (el && el.value.trim()) || '{"device":"demo","temp_c":21.0}';
+        addEntry(body);
+        window.location.hash = '#view';
+      }})
+    ]}
+  ]};
+}
+
+function statusBody() {
+  var total = entries.length;
+
+  function row(label, value, bad) {
+    return { t: 'tr', c: [
+      { t: 'td', a: { style: 'padding:0.35rem 1rem 0.35rem 0;opacity:0.75;white-space:nowrap' }, c: label },
+      { t: 'td', a: { style: 'font-family:monospace' + (bad ? ';color:#c0392b;font-weight:600' : '') }, c: String(value) }
+    ]};
+  }
+
+  return { t: 'div', c: [
+    { t: 'h1', a: { style: 'margin-top:0' }, c: 'Status' },
+    { t: 'p', a: { style: 'max-width:44rem;opacity:0.85' },
+      c: 'The first page to check when something is wrong. These numbers are made up; ' +
+         'on a real install they come from the server.' },
+    { t: 'div', a: { style: 'display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem' }, c: [
+      bw.makeStatCard({ label: 'Store', value: 'sqlite' }),
+      bw.makeStatCard({ label: 'Entries', value: total }),
+      bw.makeStatCard({ label: 'Channels', value: 1 }),
+      bw.makeStatCard({ label: 'Users', value: 1 })
+    ]},
+    bw.makeCard({ title: 'Environment', content: { t: 'table', c: { t: 'tbody', c: [
+      row('triops', SITE.version),
+      row('api', 1),
+      row('php', '8.2.14'),
+      row('bitwrench', SITE.bitwrench),
+      row('store driver', 'sqlite'),
+      row('store healthy', 'yes'),
+      row('sqlite3 extension', 'present'),
+      row('data dir writable', 'yes'),
+      row('max entries / channel', 512),
+      row('max payload bytes', 65536),
+      row('ingest key', 'not set — anyone can post'),
+      row('device TACO render', 'disabled')
+    ]}}}),
+    bw.makeCard({ title: 'Channels', content: bw.makeDataTable({
+      data: [{ channel: 'lab', entries: total, last: entries.length ? triops.fmtAgo(entries[0].ts) : '—' }]
+    })})
+  ]};
+}
+
+// ---------------------------------------------------------------- render
 
 function toggleAuto(e) {
   if (timer) { clearInterval(timer); timer = null; }
@@ -144,15 +234,34 @@ function renderEntries() {
 
       return bw.makeCard({
         content: { t: 'div', c: [
-          { t: 'div', a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.4rem' }, c: meta },
-          triops.payloadTaco(e.body)
+          { t: 'div', a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.5rem' }, c: meta },
+          triops.payloadTaco(e.body, String(e.ts), expanded)
         ]}
       });
     })
   });
 }
 
-loginView();
+// Keep a toggled-open raw view open across re-renders, same as the real app.
+var expanded = new Set();
+
+function render() {
+  // Leaving the page stops the timer; otherwise it keeps firing against a
+  // #entries element that no longer exists.
+  if (timer) { clearInterval(timer); timer = null; }
+
+  if (window.location.hash === '#logout') { loggedIn = false; }
+  if (!loggedIn) { loginView(); return; }
+
+  var route = currentRoute();
+  var body = route === 'send' ? sendBody() : route === 'status' ? statusBody() : viewBody();
+
+  bw.DOM('#app', shell(route, body));
+  if (route === 'view') renderEntries();
+}
+
+window.addEventListener('hashchange', render);
+render();
 </script>
 </body>
 </html>
