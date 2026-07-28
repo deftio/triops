@@ -45,6 +45,21 @@ jobs:
           (cd dist && sha256sum *.zip > SHA256SUMS)
           ls -la dist
 
+      - name: Extract this version's changelog section
+        # Only the notes for the tag being released, not the whole file.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          awk -v v="$tag" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/         { exit }
+            on                     { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::warning::no CHANGELOG section for $tag; falling back to the full file"
+            cp CHANGELOG.md RELEASE_NOTES.md
+          fi
+          head -5 RELEASE_NOTES.md
+
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
@@ -52,5 +67,5 @@ jobs:
             dist/triops-${{ github.ref_name }}.zip
             dist/triops.zip
             dist/SHA256SUMS
-          body_path: CHANGELOG.md
+          body_path: RELEASE_NOTES.md
           draft: false

@@ -72,6 +72,9 @@ that itself now, so installation went from four commands to unzipping a folder.
   commented out.
 - Redis failures were caught as `Exception`; a missing extension raises `Error`
   in PHP 7+, so the page fatalled instead.
+- An expanded raw payload view was closed by the 2-second auto-refresh, which
+  rebuilt every card underneath you — exactly when you are most likely to have
+  auto-refresh switched on.
 
 ### Security
 
