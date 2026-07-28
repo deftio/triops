@@ -94,6 +94,49 @@ curl -X POST 'http://host/triops/api/ingest.php?channel=lab' \
 Errors: `413 payload_too_large` past `max_payload_bytes`, `401 unauthorized` on
 a bad key, `500 store_error` if the write fails.
 
+### Posting UI instead of data
+
+With `allow_taco_render` enabled in config, a device can post a
+[bitwrench TACO](https://github.com/deftio/bitwrench) — `{t, a, c}` — and triops
+renders it as live UI instead of showing it as a payload. A microcontroller
+drawing its own status panel:
+
+```json
+{"t":"div","c":[
+  {"t":"h3","c":"pump-03"},
+  {"t":"ul","c":[
+    {"t":"li","c":"pressure: 2.4 bar"},
+    {"t":"li","c":"runtime: 41h"}
+  ]}
+]}
+```
+
+Off by default, because rendering markup from an untrusted source is XSS with
+extra steps.
+
+What triops accepts is specified as JSON Schema in
+[`taco-wire.schema.json`](./taco-wire.schema.json) — a deliberately smaller
+subset than a full TACO. Structure only, never behaviour: no `o` block (state,
+lifecycle, handles), no `on*` attributes, no `script`/`iframe`/`style`/`form`
+tags, and no `javascript:` or `data:` URLs.
+
+That subset is not arbitrary. Everything excluded is executable code, which is
+also the part that cannot be serialised — so **the schema-able subset and the
+trust-boundary subset are the same subset**. UI as data travels; UI as behaviour
+does not.
+
+Being a schema rather than prose, it is machine-checkable at the boundary and
+can be handed to a constrained decoder, so a model generating a panel is
+structurally incapable of emitting a handler. This is the practical difference
+between UI-as-data and UI-as-syntax: you cannot write this schema for JSX,
+because JSX is a program.
+
+**Enforcement note:** the runtime guard is `triops.sanitizeTaco()` in
+`app/assets/triops.js`, which strips the same things client-side. triops does
+not validate against the schema at runtime — that would mean a JSON Schema
+library, and `app/` has no dependencies. The schema is the specification and the
+sanitiser is the enforcement; if you change one, check the other.
+
 ---
 
 ## GET `api/read.php`
