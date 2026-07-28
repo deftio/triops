@@ -10,7 +10,7 @@ t_require_auth();
 t_page_open('');
 ?>
 <img src="./assets/triops-logo.png" alt="triops" style="height:64px;margin:0.5rem 0 1rem">
-<p style="max-width:44rem">
+<p class="triops-prose">
   Point a device at one of these and watch what arrives. The primitives return
   plain text so you can read them on a serial console; everything under
   <code>api/</code> returns JSON.

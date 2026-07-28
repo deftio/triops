@@ -34,7 +34,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 t_page_open('Send test data');
 ?>
-<p style="max-width:44rem">
+<p class="triops-prose">
   Anything goes — JSON, a bare number, malformed text. triops stores the bytes
   as received, so this is also how you check what the viewer does with a payload
   your parser would reject.
@@ -45,7 +45,7 @@ t_page_open('Send test data');
   &nbsp;<a href="./view.php?channel=<?= t_e(urlencode($channel)) ?>">View it →</a></p>
 <?php endif; ?>
 
-<form method="post" action="./send.php" class="bw_bccl_card" style="padding:1rem;max-width:44rem">
+<form method="post" action="./send.php" class="bw_bccl_card" style="padding:1rem;max-width:42rem">
   <input type="hidden" name="csrf" value="<?= t_e(t_csrf_token()) ?>">
   <p><label>Channel<br>
     <input class="bw_bccl_form_control" type="text" name="channel" value="<?= t_e($channel) ?>"></label></p>

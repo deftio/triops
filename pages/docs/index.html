@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triops documentation</title>
+<meta name="description" content="Documentation for triops — install, endpoints, API reference, adding your own pages, and troubleshooting.">
+<link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+<script src="../assets/bitwrench.umd.min.js"></script>
+<script src="../assets/triops.js"></script>
+<script src="../assets/version.js"></script>
+</head>
+<body>
+
+<!--
+  A curated index, not a file listing.
+
+  The documents themselves stay as markdown in the repo, where GitHub renders
+  them properly with a table of contents and working anchors. Duplicating them
+  here would mean two copies drifting apart, and rendering them client-side
+  would mean shipping a markdown parser — a dependency, for a project whose
+  pitch is that it has none. So this page does the one thing the GitHub file
+  listing does badly: says what each document is and who it is for.
+-->
+
+<div id="app"></div>
+<script>
+triops.baseStyles({ primary: '#006666', secondary: '#cc6633' });
+
+var SITE = window.TRIOPS_SITE || { version: 'dev', bitwrench: '?', repo: 'https://github.com/deftio/triops' };
+var REPO = SITE.repo;
+var DOCS = REPO + '/blob/master/docs/';
+
+var SECTIONS = [
+  {
+    title: 'Getting it running',
+    docs: [
+      { name: 'Install', file: 'install.md',
+        blurb: 'Unzip into a web directory. Also covers nginx (which ignores .htaccess entirely), shared hosting, and moving the data directory out of the web root.' },
+      { name: 'Troubleshooting', file: 'troubleshooting.md',
+        blurb: 'Device posts but nothing appears. Works with curl but not from the board. Everything returns 500. Start here when it misbehaves.' }
+    ]
+  },
+  {
+    title: 'Using it',
+    docs: [
+      { name: 'Endpoints', file: 'endpoints.md',
+        blurb: 'Every plain-text debug endpoint with example output — echo, bytes, delay, code, and the rest. These output formats are a stability promise.' },
+      { name: 'API reference', file: 'api.md',
+        blurb: 'The JSON API under /api: envelope, status codes, versioning, and every route. Includes posting UI instead of data.' },
+      { name: 'Examples', file: 'examples/',
+        blurb: 'Working code for curl, ESP32/Arduino, Python and MicroPython — including how to find your receive buffer limit and test timeout handling.' }
+    ]
+  },
+  {
+    title: 'Changing it',
+    docs: [
+      { name: 'Adding your own page', file: 'hacking.md',
+        blurb: 'A new endpoint is about five lines. Three worked examples in ascending weight, plus a short bitwrench primer for the HTML ones.' },
+      { name: 'Wire-safe TACO schema', file: 'taco-wire.schema.json',
+        blurb: 'JSON Schema for the UI a device is allowed to post. Structure without behaviour — the subset that can safely cross a trust boundary.' }
+    ]
+  }
+];
+
+var ELSEWHERE = [
+  { name: 'README', href: REPO, blurb: 'What triops is and why' },
+  { name: 'Changelog', href: REPO + '/blob/master/CHANGELOG.md', blurb: 'What changed in ' + SITE.version },
+  { name: 'AGENTS.md', href: REPO + '/blob/master/AGENTS.md', blurb: 'Conventions for editing the codebase' },
+  { name: 'llms.txt', href: REPO + '/blob/master/llms.txt', blurb: 'The whole project, condensed for coding agents' }
+];
+
+function docCard(d) {
+  return {
+    t: 'a',
+    a: {
+      href: DOCS + d.file,
+      class: 'bw_bccl_card',
+      style: 'display:block;padding:1rem 1.15rem;margin-bottom:0.75rem;text-decoration:none;color:inherit'
+    },
+    c: [
+      { t: 'strong', a: { style: 'font-size:1.05rem' }, c: d.name },
+      { t: 'span', a: { style: 'opacity:0.55;font-family:monospace;font-size:0.85rem' }, c: '   ' + d.file },
+      { t: 'div', a: { style: 'opacity:0.8;margin-top:0.35rem;font-size:0.95rem' }, c: d.blurb }
+    ]
+  };
+}
+
+bw.DOM('#app', { t: 'div', c: [
+
+  bw.makeNavbar({
+    brand: 'triops',
+    brandHref: '../',
+    items: [
+      { text: 'Home', href: '../' },
+      { text: 'Docs', href: './', active: true },
+      { text: 'Demo', href: '../demo/' },
+      { text: 'GitHub', href: REPO }
+    ]
+  }),
+
+  { t: 'div', a: { class: 'bw_container', style: 'text-align:right;padding:0.4rem 0;font-size:0.85rem;opacity:0.7' }, c: [
+    { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
+    { t: 'span', c: '  ·  triops ' + SITE.version }
+  ]},
+
+  { t: 'div', a: { class: 'bw_container', style: 'padding:1rem 0 3rem' }, c: [
+    { t: 'h1', a: { style: 'margin-top:0' }, c: 'Documentation' },
+    { t: 'p', a: { class: 'triops-prose', style: 'opacity:0.85' },
+      c: 'These open on GitHub, which renders markdown with a table of contents and working anchors. ' +
+         'The documents live in the repository so they version with the code.' },
+
+    { t: 'div', c: SECTIONS.map(function (s) {
+      return { t: 'section', a: { style: 'margin-top:2rem' }, c: [
+        { t: 'h2', a: { style: 'font-size:1.15rem;margin-bottom:0.75rem' }, c: s.title },
+        { t: 'div', c: s.docs.map(docCard) }
+      ]};
+    })},
+
+    { t: 'section', a: { style: 'margin-top:2.5rem' }, c: [
+      { t: 'h2', a: { style: 'font-size:1.15rem;margin-bottom:0.75rem' }, c: 'Elsewhere' },
+      { t: 'ul', a: { style: 'margin:0;padding-left:1.1rem' }, c: ELSEWHERE.map(function (l) {
+        return { t: 'li', a: { style: 'margin:0.4rem 0' }, c: [
+          { t: 'a', a: { href: l.href }, c: l.name },
+          { t: 'span', a: { style: 'opacity:0.7' }, c: ' — ' + l.blurb }
+        ]};
+      })}
+    ]},
+
+    { t: 'section', a: { style: 'margin-top:2.5rem' }, c: [
+      { t: 'h2', a: { style: 'font-size:1.15rem' }, c: 'Get it' },
+      { t: 'div', a: { style: 'display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.75rem' }, c: [
+        { t: 'a', a: { href: REPO + '/releases/latest/download/triops.zip',
+            class: 'bw_bccl_btn bw_primary', style: 'text-decoration:none;display:inline-block' },
+          c: 'Download ' + SITE.version },
+        { t: 'a', a: { href: '../demo/', class: 'bw_bccl_btn bw_secondary',
+            style: 'text-decoration:none;display:inline-block' }, c: 'Try the demo' }
+      ]}
+    ]}
+  ]},
+
+  { t: 'footer', a: { class: 'bw_container', style: 'padding:1rem 0 3rem;opacity:0.7;font-size:0.9rem' },
+    c: 'triops ' + SITE.version + '  ·  BSD 2-clause  ·  built with bitwrench ' + SITE.bitwrench }
+]});
+</script>
+</body>
+</html>

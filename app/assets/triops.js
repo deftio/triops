@@ -10,10 +10,46 @@ var triops = (function () {
 
   var cfg = {};
 
+  /**
+   * One content frame for the whole product.
+   *
+   * bitwrench's navbar wraps its own contents in .bw_container, so overriding
+   * that single class is what makes the nav and the body line up instead of the
+   * nav running full-bleed over narrower content. Everything — app pages, the
+   * landing page, the demo — uses .bw_container and therefore the same edges.
+   *
+   * 8% each side, which holds across every ordinary desktop width; the cap only
+   * engages past ~1830px so an ultrawide does not get one enormous column.
+   * Readability is handled separately by .triops-prose rather than by squeezing
+   * the whole frame, so cards and tables get the room and text does not.
+   */
+  function baseStyles(theme) {
+    bw.loadStyles(theme || { primary: '#006666', secondary: '#cc6633' });
+    bw.injectCSS(bw.css({
+      '.bw_container': {
+        width: '84%',
+        'max-width': '96rem',
+        'margin-left': 'auto',
+        'margin-right': 'auto',
+        'box-sizing': 'border-box'
+      },
+      // The navbar carries its own horizontal padding, so its inner
+      // .bw_container was sizing against a narrower parent and landing ~20px
+      // inside the body edge. Zero it and both compute 84% of the same width.
+      '.bw_bccl_navbar': { 'padding-left': '0', 'padding-right': '0' },
+
+      // Prose wants a shorter measure than the frame does.
+      '.triops-prose': { 'max-width': '42rem' },
+      '@media (max-width: 640px)': {
+        '.bw_container': { width: '92%' }
+      }
+    }));
+  }
+
   /** Page chrome. Called once per page by t_page_close(). */
   function boot(config) {
     cfg = config || {};
-    bw.loadStyles(cfg.theme || { primary: '#006666', secondary: '#cc6633' });
+    baseStyles(cfg.theme);
 
     if (!cfg.chrome) return;
 
@@ -34,7 +70,7 @@ var triops = (function () {
         bw.makeNavbar({ brand: cfg.site || 'triops', brandHref: './index.php', items: items }),
         {
           t: 'div',
-          a: { style: 'text-align:right;padding:0.35rem 1rem;font-size:0.85rem;opacity:0.7' },
+          a: { class: 'bw_container', style: 'text-align:right;padding:0.4rem 0;font-size:0.85rem;opacity:0.7' },
           c: [
             { t: 'a', a: { href: '#', onclick: toggleTheme }, c: 'light / dark' },
             { t: 'span', c: '  ·  triops ' + (cfg.version || '') }
@@ -204,6 +240,7 @@ var triops = (function () {
 
   return {
     boot: boot,
+    baseStyles: baseStyles,
     jsonTaco: jsonTaco,
     payloadTaco: payloadTaco,
     sanitizeTaco: sanitizeTaco,

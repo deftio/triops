@@ -31,7 +31,7 @@
 
 <div id="app"></div>
 <script>
-bw.loadStyles({ primary: '#006666', secondary: '#cc6633' });
+triops.baseStyles({ primary: '#006666', secondary: '#cc6633' });
 
 var SITE = window.TRIOPS_SITE || { version: 'dev', bitwrench: '?', repo: 'https://github.com/deftio/triops' };
 var REPO = SITE.repo;
@@ -103,7 +103,7 @@ function shell(route, body) {
         { text: 'Log out (demo)', href: '#logout' }
       ]
     }),
-    { t: 'div', a: { class: 'bw_container', style: 'padding:1.25rem 1rem 3rem;max-width:52rem;margin:0 auto' }, c: [
+    { t: 'div', a: { class: 'bw_container', style: 'padding:1.25rem 0 3rem' }, c: [
       { t: 'div', a: { style: 'text-align:right;font-size:0.85rem;opacity:0.7;margin-bottom:0.75rem' }, c: [
         { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
         { t: 'span', c: '  ·  triops ' + SITE.version }
@@ -153,11 +153,11 @@ function viewBody() {
 function sendBody() {
   return { t: 'div', c: [
     { t: 'h1', a: { style: 'margin-top:0' }, c: 'Send test data' },
-    { t: 'p', a: { style: 'max-width:44rem;opacity:0.85' },
+    { t: 'p', a: { class: 'triops-prose', style: 'opacity:0.85' },
       c: 'In the real thing this posts to the store. Here it just adds to the list — ' +
          'useful before the hardware exists, and for checking what the viewer does with ' +
          'a payload your parser would reject.' },
-    { t: 'div', a: { class: 'bw_bccl_card', style: 'padding:1.25rem;max-width:44rem' }, c: [
+    { t: 'div', a: { class: 'bw_bccl_card', style: 'padding:1.25rem' }, c: [
       { t: 'p', c: [{ t: 'label', c: ['Channel', { t: 'br' },
           { t: 'input', a: { class: 'bw_bccl_form_control', type: 'text', value: 'lab' } }] }] },
       { t: 'p', c: [{ t: 'label', c: ['Payload', { t: 'br' },
@@ -185,7 +185,7 @@ function statusBody() {
 
   return { t: 'div', c: [
     { t: 'h1', a: { style: 'margin-top:0' }, c: 'Status' },
-    { t: 'p', a: { style: 'max-width:44rem;opacity:0.85' },
+    { t: 'p', a: { class: 'triops-prose', style: 'opacity:0.85' },
       c: 'The first page to check when something is wrong. These numbers are made up; ' +
          'on a real install they come from the server.' },
     { t: 'div', a: { style: 'display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem' }, c: [
