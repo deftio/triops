@@ -28,6 +28,10 @@ t_page_close(true, [
   var channel = TRIOPS_DATA.channel;
   var timer = null;
 
+  // Which payloads the user has toggled to raw, keyed by arrival timestamp.
+  // Survives the auto-refresh rebuilding the list underneath them.
+  var expanded = new Set();
+
   function controls() {
     bw.DOM('#controls', {
       t: 'div',
@@ -131,7 +135,7 @@ t_page_close(true, [
           } catch (err) { /* not a TACO, fall through */ }
         }
 
-        body.push(triops.payloadTaco(e.body));
+        body.push(triops.payloadTaco(e.body, String(e.ts), expanded));
         return bw.makeCard({ content: { t: 'div', c: body } });
       })
     });

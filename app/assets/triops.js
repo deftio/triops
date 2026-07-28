@@ -108,8 +108,13 @@ var triops = (function () {
    *
    * The raw view is not optional. When a board emits malformed JSON or stray
    * whitespace, a prettified view hides the precise bug you are chasing.
+   *
+   * `key` and `expanded` keep a toggled-open payload open across re-renders.
+   * Without them the 2s auto-refresh rebuilds every card and snaps your raw
+   * view shut while you are still reading it — which is precisely when you are
+   * most likely to have auto-refresh on.
    */
-  function payloadTaco(body) {
+  function payloadTaco(body, key, expanded) {
     var parsed = null;
     try { parsed = JSON.parse(body); } catch (err) { parsed = null; }
 
@@ -125,10 +130,12 @@ var triops = (function () {
 
     if (parsed === null) return rawBlock;
 
+    var startOpen = !!(expanded && key != null && expanded.has(key));
+
     return {
       t: 'div',
       o: {
-        state: { raw: false },
+        state: { raw: startOpen },
         render: function (el, state) {
           bw.DOM(el, {
             t: 'div',
@@ -137,7 +144,14 @@ var triops = (function () {
                 text: state.raw ? 'show parsed' : 'show raw',
                 size: 'sm',
                 variant: 'secondary',
-                onclick: function () { state.raw = !state.raw; bw.refresh(el); }
+                onclick: function () {
+                  state.raw = !state.raw;
+                  // Remember across re-renders so auto-refresh does not close it.
+                  if (expanded && key != null) {
+                    if (state.raw) { expanded.add(key); } else { expanded.delete(key); }
+                  }
+                  bw.refresh(el);
+                }
               }),
               state.raw ? rawBlock : { t: 'div', a: { style: 'margin-top:0.5rem' }, c: jsonTaco(parsed) }
             ]

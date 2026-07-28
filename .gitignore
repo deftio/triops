@@ -23,3 +23,7 @@ pages/assets/bitwrench.umd.min.js
 pages/assets/triops.js
 pages/assets/triops-logo.png
 pages/assets/favicon.ico
+
+# dev tooling (playwright); never ships
+dev/node_modules
+dev/package-lock.json

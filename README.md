@@ -32,6 +32,8 @@ $ curl -X POST 'http://192.168.1.40/triops/api/ingest.php?channel=lab' \
 
 ...and it is on screen, parsed, with the raw bytes one click away.
 
+![triops receiving payloads](./docs/triops-demo.gif)
+
 ## Where this fits
 
 Somewhere between blinking an LED and having a real backend.

@@ -63,8 +63,9 @@ has to argue for itself.
 
 ## Before tagging v0.2.0
 
-- [ ] **record the GIF** — a board (or a curl loop) posting, payloads appearing.
-      Highest-ROI artifact in the project; worth more than the demo site.
+- [x] **GIF recorded** — `./dev/record-demo.sh` drives the real app in a real
+      browser with Playwright and converts with ffmpeg, so it can never show a
+      UI that does not exist. Re-run it after any UI change.
 - [ ] set the GitHub repo description and topics:
       `esp32` `iot` `embedded` `debugging` `php` `self-hosted` `webhook`
 - [ ] social preview image so shared links do not look dead
@@ -85,8 +86,6 @@ has to argue for itself.
   but the config name reads like a hard cap. Documented in `config.sample.php`.
 - The demo's canned data lives in `pages/demo/index.html` and is hand-maintained.
   If the viewer's rendering changes materially, it needs a look.
-- No screenshot or GIF in the README yet, so the repo currently under-sells
-  itself to anyone scrolling past.
 
 ## Deliberately NOT doing
 

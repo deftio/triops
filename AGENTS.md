@@ -89,3 +89,19 @@ triops is a real consumer of [bitwrench](https://github.com/deftio/bitwrench),
 so it surfaces real bugs. Note them in `dev/bitwrench-notes.md` as you hit them —
 friction is vivid while you are in it and forgotten by evening — and file
 upstream. `status.php` reports the vendored bitwrench version, so include that.
+
+## Re-recording the README demo
+
+`docs/triops-demo.gif` is generated, not hand-captured:
+
+```sh
+cd dev && npm install && npx playwright install chromium   # one time
+./dev/record-demo.sh                                       # -> docs/triops-demo.gif
+```
+
+It starts a throwaway triops, drives it in a real browser, and converts the
+recording with ffmpeg — so the GIF cannot show a UI that does not exist. Re-run
+it after any change to `view.php` or the payload rendering.
+
+Playwright lives in `dev/package.json` and is dev-only. Nothing in `app/` has a
+dependency of any kind, and `dev/` is excluded from the release zip.

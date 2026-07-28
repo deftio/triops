@@ -1,0 +1,11 @@
+{
+  "name": "triops-dev-tools",
+  "private": true,
+  "description": "Dev-only tooling for triops. Nothing here ships — app/ has no dependencies of any kind, and this directory is excluded from the release zip.",
+  "scripts": {
+    "record": "node record-demo.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}
