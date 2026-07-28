@@ -27,3 +27,5 @@ pages/assets/favicon.ico
 # dev tooling (playwright); never ships
 dev/node_modules
 dev/package-lock.json
+
+pages/assets/version.js

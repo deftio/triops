@@ -71,7 +71,10 @@ has to argue for itself.
 - [ ] set the GitHub repo description and topics:
       `esp32` `iot` `embedded` `debugging` `php` `self-hosted` `webhook`
 - [ ] social preview image so shared links do not look dead
-- [ ] enable GitHub Pages with source = GitHub Actions (not deploy-from-branch)
+- [ ] **Settings -> Pages -> Source = GitHub Actions** (not deploy-from-branch).
+      Currently on deploy-from-branch, which is why the live URL has /pages/ in
+      it and every asset 404s: pages/assets/ is staged at publish time and is
+      not committed. Switching fixes the URL and the assets together.
 - [ ] read `docs/` end to end once more with fresh eyes
 - [ ] push to master — CI reads TRIOPS_VERSION, tags v0.2.0 and publishes.
       No tag to push by hand; bump the const + changelog section is the release.

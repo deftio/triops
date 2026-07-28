@@ -8,6 +8,7 @@
 <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
 <script src="../assets/bitwrench.umd.min.js"></script>
 <script src="../assets/triops.js"></script>
+<script src="../assets/version.js"></script>
 </head>
 <body>
 
@@ -27,7 +28,8 @@
 <script>
 bw.loadStyles({ primary: '#006666', secondary: '#cc6633' });
 
-var REPO = 'https://github.com/deftio/triops';
+var SITE = window.TRIOPS_SITE || { version: 'dev', repo: 'https://github.com/deftio/triops' };
+var REPO = SITE.repo;
 var loggedIn = false;
 var timer = null;
 
@@ -106,7 +108,8 @@ function appView() {
     }),
     { t: 'div', a: { class: 'bw_container', style: 'padding:1rem;max-width:52rem;margin:0 auto' }, c: [
       { t: 'div', a: { style: 'text-align:right;font-size:0.85rem;opacity:0.7;margin-bottom:0.5rem' }, c: [
-        { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' }
+        { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
+        { t: 'span', c: '  ·  triops ' + SITE.version }
       ]},
       { t: 'h1', c: 'Received' },
       { t: 'div', a: { style: 'display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem' }, c: [
