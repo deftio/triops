@@ -31,31 +31,6 @@ Either a clearer error when `data[0]` is not an array, or a note in the
 docstring, would have saved it. `makeDataTable` is the right function and is easy
 to miss when `makeTableFromArray` sounds like the general case.
 
-### `makeButton` silently drops `href`
-
-The one that actually shipped a broken page. `makeButton` destructures
-`{text, variant, size, disabled, onclick, action, type, className, style}` and
-always emits `<button type="button">`. Pass an `href` and it is discarded
-without a warning:
-
-```js
-bw.html(bw.makeButton({ text: 'Try the demo', href: './demo/' }))
-// <button type="button" class="bw_bccl_btn bw_primary">Try the demo</button>
-//   ^ no href, no error, button does nothing
-```
-
-Every "button" on the triops landing page was dead on the live site because of
-this, and it looked completely fine in review — the styling is right, the
-markup is valid, it just does not navigate.
-
-Most component libraries render an `<a>` when a Button gets an `href`. Either
-doing that, or warning on an unrecognised key, would have caught it instantly.
-`bw.link` is not the substitute — it calls `preventDefault` for SPA routing.
-
-Workaround in `pages/index.html`: an anchor carrying the button classes, which
-is arguably more correct anyway since these navigate and should support
-middle-click and open-in-new-tab.
-
 ### No arbitrary-JSON renderer
 
 Not a bug — a component library cannot know your shape — but it is the one thing
@@ -67,6 +42,40 @@ recursive. Might be worth having as `bw.makeJSONTree()` or similar.
 name and not what you want here.
 
 ---
+
+## Our bugs, not bitwrench's
+
+Kept here because the failure mode is worth remembering, not because anything
+upstream needs changing.
+
+### Assuming `makeButton` takes an `href`
+
+triops shipped a landing page where every hero button was dead. Cause: we wrote
+
+```js
+bw.makeButton({ text: 'Try the demo', href: './demo/' })
+```
+
+`makeButton` takes `{text, variant, size, disabled, onclick, action, type,
+className, style}` and renders a `<button>`. It never claimed to accept `href` —
+we invented that parameter, and JavaScript ignores unknown object keys, as it
+does everywhere. Not a library bug.
+
+What made it nasty is that it reviews clean: correct styling, valid markup, no
+console error. It simply does not navigate, and nothing tells you.
+
+Fix was an anchor carrying the button classes, which is more correct anyway
+since these navigate between pages and should support middle-click and
+open-in-new-tab. `bw.link` is not the substitute — it calls `preventDefault`
+for SPA routing.
+
+**Possible upstream nicety, low priority:** many component libraries render an
+`<a>` when a Button is given an `href`. Doing that would make the intuition
+correct rather than wrong. File as an enhancement if at all — not a defect.
+
+**Real lesson for triops:** check links by clicking them in a browser, not by
+reading the code. `dev/record-demo.sh` already has Playwright available for
+exactly this, and it caught it in seconds once pointed at the page.
 
 ## Observations, not complaints
 
