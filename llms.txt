@@ -1,0 +1,130 @@
+# triops
+
+> A small PHP web server for inspecting what IoT hardware actually sends over
+> HTTP. Unzip into a web directory and it runs: no dependencies, no database to
+> install, no build step. PHP 8.0+.
+
+## What it is
+
+triops is the receiving end of a device's HTTP connection during firmware
+bring-up. A board posts a payload; triops shows the exact bytes, the headers,
+the query string, and the arrival time. It also provides deliberately dumb
+endpoints for testing client behaviour — a slow response, an arbitrary status
+code, an exact byte count — because that is how you find out what a
+microcontroller's HTTP client does under stress.
+
+It is a bench tool, not a production telemetry backend. It keeps the last N
+payloads per channel in a ring buffer and drops the rest.
+
+## Two surfaces, and the line between them matters
+
+- `/` — plain text, no envelope, no JSON. `timestamp.php`, `sum.php`, `ip.php`,
+  `echo.php`, `headers.php`, `delay.php`, `code.php`, `bytes.php`. The audience
+  is a device with a 2 KB HTTP client and a serial console. **Output formats
+  here are a stability promise; people script against them.**
+- `/api/` — JSON, versioned, always enveloped as
+  `{"ok":bool,"api":int,"data":…}` or `{"ok":false,"error":…,"code":…}`.
+  `version.php`, `status.php`, `read.php`, `ingest.php`, `clear.php`.
+
+`api/version.php` is unauthenticated so a client can feature-detect. The `api`
+integer changes only on a breaking API change, so nothing has to parse semver.
+
+## Hard constraints
+
+These are not preferences. Code that violates them does not belong in triops.
+
+1. **No runtime dependencies.** No composer, no framework, no redis, no daemons,
+   no cron, no build step. The one vendored asset is bitwrench, pinned, because a
+   lab network may have no internet.
+2. **File-per-URL routing.** No front controller, no router, no mod_rewrite
+   requirement. A directory is a namespace; `api/v2/` is how the API versions.
+3. **Runs on a plain shared host.** If it needs a long-running process or an
+   uncommon extension, it does not ship in `app/`.
+4. **PHP 8.0 floor.** No 8.1+ syntax (no enums, no readonly, no `never`).
+5. **A new endpoint is ~5 lines** on top of the bootstrap. If it stops being
+   that, the framework has failed and should be fixed rather than worked around.
+
+## Layout
+
+```
+app/            the deployable unit — the release zip is exactly this directory
+  lib/          triops.php (bootstrap), store.php, auth.php, ui.php
+  api/          JSON endpoints
+  templates/    plain.php, api.php, page.php — copy one to add a page
+  assets/       bitwrench.umd.min.js (vendored, pinned), triops.js, logos
+  data/         gitignored; sqlite db, ndjson files, users.json
+docs/           markdown
+pages/          GitHub Pages site: landing + a JS-mocked demo
+dev/            scratch; ships in nothing
+```
+
+## How a page is written
+
+Every page opens with one line:
+
+```php
+<?php require __DIR__ . '/lib/triops.php';
+```
+
+That provides config, the store, auth, and the response helpers. Then:
+
+- plain text → `t_text($body)`
+- JSON → `t_ok($data)` / `t_err($msg, $code, $status)`
+- HTML → `t_page_open($title)` … `t_page_close(true, $data)` … `t_page_end()`
+
+Auth guards: `t_require_auth()` on HTML pages (redirects to login/setup),
+`t_api_require_auth()` under `api/` (returns 401 JSON — never redirect an API
+client to an HTML form).
+
+`t_channel($raw)` strips everything but `[A-Za-z0-9_-]`. Any user-supplied value
+that reaches the filesystem must go through it.
+
+## Storage
+
+`t_store()` returns a driver implementing `push/last/clear/channels/healthy`.
+
+- **sqlite** (default when `SQLite3` is present) — WAL mode, `busy_timeout`,
+  trimmed inside the same transaction as the insert. WAL is required, not
+  optional: the viewer polls while devices post, and rollback-journal mode
+  throws "database is locked" under exactly that pattern.
+- **ndjson** (fallback, no extensions) — append-only, `flock` + one `fwrite` per
+  record, never read-modify-write. Line 1 of every data file is `<?php exit; ?>`
+  so contents do not leak if the directory is ever served. Compacts at 4× the
+  cap, so it retains between N and 4N.
+
+Trimming happens on write. There is deliberately no cron and no timer.
+
+## UI
+
+The interface is [bitwrench](https://github.com/deftio/bitwrench) 2.x, vendored
+at `app/assets/bitwrench.umd.min.js`. PHP emits a thin skeleton and passes data
+as JSON on `window.TRIOPS_DATA`; the page script builds the DOM from TACO objects
+(`{t, a, c, o}`). `bw.loadStyles()` derives the whole palette including dark
+mode, so **there is no hand-written CSS in triops** — do not add any.
+
+`app/assets/triops.js` adds what bitwrench cannot know about: `jsonTaco()`
+renders arbitrary JSON as a browsable tree, `payloadTaco()` wraps it with a raw
+toggle, `sanitizeTaco()` strips handlers from device-supplied TACO.
+
+Login and setup are the exception: they emit real HTML forms and work with
+JavaScript disabled, because being locked out of a debug tool by a script error
+is unacceptable.
+
+## Security model
+
+Users are humans who log in. Devices are not users — they post to
+`api/ingest.php`, optionally gated by a shared `ingest_key` compared with
+`hash_equals`. There are no roles: logged-in versus not is the only distinction.
+
+Users live in `data/users.json`, not in the store, so auth still works when the
+database is corrupt and you can fix a lockout with a text editor. Passwords are
+`password_hash()`. Every state-changing form carries a CSRF token. There are no
+default credentials — first run forces account creation.
+
+## Where to read next
+
+- `docs/hacking.md` — add your own page, including a short bitwrench primer
+- `docs/api.md` — API reference
+- `docs/troubleshooting.md` — device posts but nothing appears, etc.
+- `docs/install.md` — nginx, shared hosting, moving the data directory
+- `AGENTS.md` — conventions for editing this repo

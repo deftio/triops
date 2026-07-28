@@ -1,0 +1,4 @@
+# Nothing in lib/ is a page. Every file here also checks defined('TRIOPS'),
+# because this file does nothing at all on nginx.
+Require all denied
+Options -Indexes

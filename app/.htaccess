@@ -1,0 +1,17 @@
+# triops — Apache config.
+#
+# On nginx none of this applies. See docs/install.md for the equivalent
+# location blocks; the PHP-side guards (defined('TRIOPS'), the exit line at the
+# top of every data file) are what actually protect you there.
+
+Options -Indexes
+
+<Files "config.php">
+    Require all denied
+</Files>
+
+<Files "config.sample.php">
+    Require all denied
+</Files>
+
+ErrorDocument 404 /404.php
