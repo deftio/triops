@@ -9,9 +9,11 @@ no build step, no CDN, served by PHP.
 Vendored version: **2.1.3** (`app/assets/bitwrench.umd.min.js`).
 `status.php` reports it, so include that when filing upstream.
 
-**Current tally: nothing to file.** Both things that initially looked like
-library problems were triops failing to read the documentation. That is a real
-result and worth recording as-is.
+**Tally: no defects found.** Both things that initially looked like library
+problems were triops failing to read the documentation. Filed one DX issue —
+[bitwrench#92](https://github.com/deftio/bitwrench/issues/92) — about the
+*failure mode* rather than the docs: unrecognised option keys are dropped
+silently, so a wrong call either does nothing or throws from minified code.
 
 ---
 
@@ -57,6 +59,13 @@ cheatsheet lists its key prop as `data (2D array)`. `makeTable` and
 The name reads ambiguously in isolation, but "from array" is doing real work
 here: it distinguishes this from `makeTable`, which takes objects. Documented,
 exampled, and listed in two places. Nothing to file.
+
+### Filed upstream
+
+[bitwrench#92](https://github.com/deftio/bitwrench/issues/92) — warn on
+unrecognised option keys in dev builds. Both mistakes below would have surfaced
+immediately. Also mentions shipping an unminified UMD build, since debugging a
+vendored no-build-step consumer means reading `t[0].map` with no source map.
 
 ### The actual pattern
 
