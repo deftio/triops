@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Stage shared assets
         # pages/ holds only the landing page and the demo. bitwrench and
@@ -27,11 +27,11 @@ jobs:
         # demo cannot drift into showing a UI that does not exist.
         run: ./dev/build-site.sh
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       # Publishing from pages/ needs the Actions path, not the legacy
       # deploy-from-branch setting, which only allows / or /docs.
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: ./pages
 
@@ -43,4 +43,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
