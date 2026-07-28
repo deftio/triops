@@ -156,4 +156,5 @@ that is where it comes from.
 
 ## License
 
-BSD 2-clause. © 2020–2026 M A Chatterjee.
+BSD 2-clause. © 2020–2026 M A Chatterjee. 
+
