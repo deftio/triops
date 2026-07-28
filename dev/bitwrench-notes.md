@@ -9,48 +9,17 @@ no build step, no CDN, served by PHP.
 Vendored version: **2.1.3** (`app/assets/bitwrench.umd.min.js`).
 `status.php` reports it, so include that when filing upstream.
 
----
-
-## Worth filing
-
-### `makeTableFromArray` takes rows, not records
-
-The name reads as "make a table from an array [of objects]", which is the common
-shape when you have just parsed JSON. It actually wants an array of arrays.
-
-```js
-bw.makeTableFromArray({ data: [{ts: '1', ch: 'a'}] })
-// TypeError: t[0].map is not a function
-
-bw.makeTableFromArray({ data: [['1', 'a'], ['2', 'b']] })   // works
-bw.makeDataTable({ data: [{ts: '1', ch: 'a'}] })            // records go here
-```
-
-Cost me a few minutes and a stack trace that pointed into the minified bundle.
-Either a clearer error when `data[0]` is not an array, or a note in the
-docstring, would have saved it. `makeDataTable` is the right function and is easy
-to miss when `makeTableFromArray` sounds like the general case.
-
-### No arbitrary-JSON renderer
-
-Not a bug — a component library cannot know your shape — but it is the one thing
-triops needed that BCCL does not cover, so every consumer displaying unknown JSON
-will write it. `triops.jsonTaco()` in `app/assets/triops.js` is ~30 lines and
-recursive. Might be worth having as `bw.makeJSONTree()` or similar.
-
-`bw.inspect()` is a DOM inspector, which is a reasonable thing to reach for by
-name and not what you want here.
+**Current tally: nothing to file.** Both things that initially looked like
+library problems were triops failing to read the documentation. That is a real
+result and worth recording as-is.
 
 ---
 
-## Our bugs, not bitwrench's
-
-Kept here because the failure mode is worth remembering, not because anything
-upstream needs changing.
+## What we got wrong
 
 ### Assuming `makeButton` takes an `href`
 
-triops shipped a landing page where every hero button was dead. Cause: we wrote
+triops shipped a landing page where every hero button was dead:
 
 ```js
 bw.makeButton({ text: 'Try the demo', href: './demo/' })
@@ -59,7 +28,7 @@ bw.makeButton({ text: 'Try the demo', href: './demo/' })
 `makeButton` takes `{text, variant, size, disabled, onclick, action, type,
 className, style}` and renders a `<button>`. It never claimed to accept `href` —
 we invented that parameter, and JavaScript ignores unknown object keys, as it
-does everywhere. Not a library bug.
+does everywhere.
 
 What made it nasty is that it reviews clean: correct styling, valid markup, no
 console error. It simply does not navigate, and nothing tells you.
@@ -69,15 +38,57 @@ since these navigate between pages and should support middle-click and
 open-in-new-tab. `bw.link` is not the substitute — it calls `preventDefault`
 for SPA routing.
 
-**Possible upstream nicety, low priority:** many component libraries render an
-`<a>` when a Button is given an `href`. Doing that would make the intuition
-correct rather than wrong. File as an enhancement if at all — not a defect.
+### Assuming `makeTableFromArray` takes records
 
-**Real lesson for triops:** check links by clicking them in a browser, not by
-reading the code. `dev/record-demo.sh` already has Playwright available for
-exactly this, and it caught it in seconds once pointed at the page.
+Called it with an array of objects and got `TypeError: t[0].map is not a
+function` out of the minified bundle.
+
+The docs are explicit and carry a worked example:
+
+```js
+bw.makeTableFromArray({ data: [['Name','Age','Role'], ['Alice',30,'Engineer']] })
+```
+
+`makeTableFromArray` is documented as taking **2D arrays — CSV and spreadsheet
+data** — with `headerRow` controlling whether row one is the header. The
+cheatsheet lists its key prop as `data (2D array)`. `makeTable` and
+`makeDataTable` are the ones that take records.
+
+The name reads ambiguously in isolation, but "from array" is doing real work
+here: it distinguishes this from `makeTable`, which takes objects. Documented,
+exampled, and listed in two places. Nothing to file.
+
+### The actual pattern
+
+Both failures were the same one, and bitwrench's own `llms.txt` warns about it
+directly:
+
+> Check BCCL first — if there is a built-in component for what you need, use it.
+
+We had that text loaded and still guessed at signatures instead of opening
+`docs/component-library.md`. bitwrench has deep docs; the cost of reading them
+is about ninety seconds and would have prevented both.
+
+Second lesson, from the button: **verify links by clicking them in a browser,
+not by reading the code.** `dev/record-demo.sh` already has Playwright
+installed, and pointing it at the page found the dead button in seconds.
+
+---
 
 ## Observations, not complaints
+
+### No arbitrary-JSON renderer, and reasonably so
+
+Verified against the full component list: there is no `makeJSONTree`,
+`makeTree`, `makeObjectView` or equivalent. `bw.inspect()` is a DOM inspector,
+which is a plausible thing to reach for by name and not what you want.
+
+Not a gap so much as a boundary — a component library cannot know your shape.
+triops needed it because displaying *unknown* payloads is the entire product, so
+`triops.jsonTaco()` in `app/assets/triops.js` is ~30 recursive lines.
+
+If enough consumers end up writing that same function it might earn a place in
+BCCL, but one data point is not evidence.
 
 ### Server-rendered forms through TACO work fine
 
@@ -92,8 +103,8 @@ it looks alarming the first time you view source.
 
 ### The all-or-nothing posture is real, and correct
 
-llms.txt says that reaching for `querySelector` or `innerHTML` means fighting the
-library. That is accurate. triops uses TACO for everything dynamic and keeps
+llms.txt says that reaching for `querySelector` or `innerHTML` means fighting
+the library. That is accurate. triops uses TACO for everything dynamic and keeps
 exactly two pages (login, setup) as plain server-rendered HTML — deliberately, so
 a script error cannot lock you out of a debug tool. That split has been stable
 and has not caused friction.

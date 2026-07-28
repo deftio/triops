@@ -80,7 +80,8 @@ has to argue for itself.
 
 - [ ] post it: r/esp32, r/embedded, r/selfhosted, Show HN, Hackaday tip line
 - [ ] link triops from the bitwrench docs as a worked example
-- [ ] file the `makeTableFromArray` naming issue upstream (see `bitwrench-notes.md`)
+- [x] nothing to file upstream — both apparent bitwrench issues were triops not
+      reading the docs. See `dev/bitwrench-notes.md`.
 
 ## Known rough edges
 
