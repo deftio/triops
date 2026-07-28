@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor, a common shared-hosting version, and current. If it passes on
+        # 8.0 it will not have picked up 8.1+ syntax by accident.
+        php: ['8.0', '8.2', '8.4']
+
+    name: php ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: sqlite3
+          coverage: none
+
+      - name: Lint every PHP file
+        # The highest-value check in this repo. 0.1 shipped a page beginning
+        # "<? php" that emitted its whole body as text; this would have caught
+        # it on the first push.
+        run: |
+          status=0
+          while IFS= read -r f; do
+            php -l "$f" > /dev/null || { echo "::error file=$f::syntax error"; php -l "$f"; status=1; }
+          done < <(find app dev -name '*.php')
+          echo "linted $(find app dev -name '*.php' | wc -l) files"
+          exit $status
+
+      - name: Smoke test
+        run: ./dev/smoke.sh
+
+      - name: Smoke test with the ndjson driver
+        # The fallback path has to work on hosts with no sqlite extension, so
+        # exercise it explicitly rather than trusting auto-detection.
+        run: |
+          cat > app/config.php <<'EOF'
+          <?php
+          return ['store' => 'ndjson'];
+          EOF
+          PORT=8798 ./dev/smoke.sh
+          rm -f app/config.php
+
+  no-sqlite:
+    # Prove triops still runs when the sqlite extension is simply absent, which
+    # is the situation the ndjson driver exists for.
+    runs-on: ubuntu-latest
+    name: php 8.2 without sqlite3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: ':sqlite3'
+          coverage: none
+      - run: php -r 'exit(class_exists("SQLite3") ? 1 : 0);' || (echo "sqlite3 still loaded" && exit 1)
+      - run: PORT=8797 ./dev/smoke.sh

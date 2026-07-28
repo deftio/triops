@@ -1,0 +1,46 @@
+name: pages
+
+on:
+  push:
+    branches: [master, main]
+    paths: ['pages/**', 'app/assets/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage shared assets
+        # pages/ holds only the landing page and the demo. bitwrench and
+        # triops.js are copied from app/ rather than duplicated in git, so the
+        # demo cannot drift into showing a UI that does not exist.
+        run: ./dev/build-site.sh
+
+      - uses: actions/configure-pages@v5
+
+      # Publishing from pages/ needs the Actions path, not the legacy
+      # deploy-from-branch setting, which only allows / or /docs.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,56 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sqlite3
+          coverage: none
+
+      - name: Tag must match TRIOPS_VERSION
+        # The version const in the bootstrap is the single source of truth, and
+        # status.php reports it — a deployed instance saying 0.2.0 while the tag
+        # says 0.2.1 is worse than useless when someone files a bug.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          src=$(php -r "define('TRIOPS',1); require 'app/lib/triops.php'; echo TRIOPS_VERSION;")
+          echo "tag=$tag  TRIOPS_VERSION=$src"
+          [ "$tag" = "$src" ] || { echo "::error::tag $tag does not match TRIOPS_VERSION $src"; exit 1; }
+
+      - name: Smoke test before shipping
+        run: ./dev/smoke.sh
+
+      - name: Build the zip
+        # The release artifact is exactly app/, staged as triops/ so it unpacks
+        # with a sensible directory name straight into a web root.
+        run: |
+          mkdir -p dist stage
+          cp -r app stage/triops
+          rm -rf stage/triops/config.php stage/triops/data/*
+          touch stage/triops/data/.gitkeep
+          (cd stage && zip -rq "../dist/triops-${GITHUB_REF_NAME}.zip" triops)
+          cp "dist/triops-${GITHUB_REF_NAME}.zip" dist/triops.zip
+          (cd dist && sha256sum *.zip > SHA256SUMS)
+          ls -la dist
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/triops-${{ github.ref_name }}.zip
+            dist/triops.zip
+            dist/SHA256SUMS
+          body_path: CHANGELOG.md
+          draft: false

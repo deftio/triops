@@ -35,7 +35,7 @@ function t_page_open(string $title, bool $chrome = true): void
 <div id="triops-nav"></div>
 <main class="bw_container" id="triops-main">
 <?php
-    if ($chrome) {
+    if ($chrome && $title !== '') {
         echo '<h1>' . t_e($title) . "</h1>\n";
     }
 }

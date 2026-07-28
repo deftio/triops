@@ -17,3 +17,9 @@ node_modules
 coverage
 .nyc_output
 *.tgz
+
+# staged from app/assets by dev/build-site.sh
+pages/assets/bitwrench.umd.min.js
+pages/assets/triops.js
+pages/assets/triops-logo.png
+pages/assets/favicon.ico

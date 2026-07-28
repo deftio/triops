@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triops demo</title>
+<meta name="description" content="An interactive mock of the triops interface. No server, no data leaves your browser.">
+<link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+<script src="../assets/bitwrench.umd.min.js"></script>
+<script src="../assets/triops.js"></script>
+</head>
+<body>
+
+<!--
+  This is a MOCK.
+
+  GitHub Pages serves static files and cannot run PHP, so there is no triops
+  here — the login accepts anything, the payloads are canned, and nothing is
+  stored or transmitted. It exists so you can see the interface before
+  installing.
+
+  It deliberately loads the same bitwrench and the same app/assets/triops.js as
+  the real thing, so it cannot drift into showing you a UI that does not exist.
+-->
+
+<div id="app"></div>
+<script>
+bw.loadStyles({ primary: '#006666', secondary: '#cc6633' });
+
+var REPO = 'https://github.com/deftio/triops';
+var loggedIn = false;
+var timer = null;
+
+// Canned payloads, shaped like things a board actually sends: well-formed JSON,
+// a bare sensor reading, and one that is malformed on purpose — because that is
+// the case a viewer has to handle honestly.
+var SAMPLES = [
+  '{"device":"esp32-01","temp_c":22.4,"humidity":41,"uptime_s":1043,"wifi":{"rssi":-58,"ssid":"lab"}}',
+  '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}',
+  '23.1',
+  '{"device":"pico-w-02","readings":[1.2,3.4,5.6],"battery_v":3.71}',
+  '{"device":"esp32-01","temp_c":22.9,"uptime_s":1058,',
+  'sensor=temp&value=22.4&id=esp32-01'
+];
+
+var entries = [];
+var seq = 0;
+
+function addEntry() {
+  var body = SAMPLES[seq % SAMPLES.length];
+  seq++;
+  entries.unshift({
+    ts: Date.now() / 1000,
+    ip: '192.168.1.' + (50 + (seq % 4)),
+    method: 'POST',
+    ctype: body.indexOf('=') > -1 && body.indexOf('{') === -1
+      ? 'application/x-www-form-urlencoded' : 'application/json',
+    bytes: body.length,
+    query: { channel: 'lab' },
+    body: body
+  });
+  if (entries.length > 12) entries.pop();
+}
+
+for (var i = 0; i < 4; i++) addEntry();
+
+function banner() {
+  return {
+    t: 'div',
+    a: { style: 'background:#cc6633;color:#fff;padding:0.5rem 1rem;text-align:center;font-size:0.9rem' },
+    c: [
+      { t: 'strong', c: 'Demo. ' },
+      { t: 'span', c: 'Nothing here is real — the data is canned and there is no server. ' },
+      { t: 'a', a: { href: REPO, style: 'color:#fff;text-decoration:underline' }, c: 'Install the real thing' }
+    ]
+  };
+}
+
+function loginView() {
+  bw.DOM('#app', { t: 'div', c: [
+    banner(),
+    { t: 'div', a: { class: 'bw_bccl_card', style: 'max-width:26rem;margin:3rem auto;padding:1.5rem' }, c: [
+      { t: 'img', a: { src: '../assets/triops-logo.png', alt: 'triops', style: 'height:56px;margin-bottom:1rem' } },
+      { t: 'p', a: { style: 'opacity:0.75;font-size:0.9rem' }, c: 'Any username and password will do.' },
+      { t: 'p', c: [{ t: 'label', c: ['Username', { t: 'br' },
+          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'text', id: 'u', value: 'demo' } }] }] },
+      { t: 'p', c: [{ t: 'label', c: ['Password', { t: 'br' },
+          { t: 'input', a: { class: 'bw_bccl_form_control', type: 'password', id: 'p', value: 'demo' } }] }] },
+      bw.makeButton({ text: 'Log in', variant: 'primary', onclick: function () { loggedIn = true; appView(); } })
+    ]}
+  ]});
+}
+
+function appView() {
+  bw.DOM('#app', { t: 'div', c: [
+    banner(),
+    bw.makeNavbar({
+      brand: 'triops',
+      brandHref: '#',
+      items: [
+        { text: 'View', href: '#' },
+        { text: 'Send', href: '#' },
+        { text: 'Status', href: '#' },
+        { text: 'Log out (demo)', href: '#' }
+      ]
+    }),
+    { t: 'div', a: { class: 'bw_container', style: 'padding:1rem;max-width:52rem;margin:0 auto' }, c: [
+      { t: 'div', a: { style: 'text-align:right;font-size:0.85rem;opacity:0.7;margin-bottom:0.5rem' }, c: [
+        { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' }
+      ]},
+      { t: 'h1', c: 'Received' },
+      { t: 'div', a: { style: 'display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem' }, c: [
+        { t: 'span', c: 'channel: lab' },
+        bw.makeButton({ text: 'Simulate a packet', size: 'sm', onclick: function () { addEntry(); renderEntries(); } }),
+        { t: 'label', a: { style: 'display:flex;gap:0.3rem;align-items:center' }, c: [
+          { t: 'input', a: { type: 'checkbox', onchange: toggleAuto } },
+          { t: 'span', c: 'auto (2s)' }
+        ]}
+      ]},
+      { t: 'div', a: { id: 'entries' }, c: '' }
+    ]}
+  ]});
+  renderEntries();
+}
+
+function toggleAuto(e) {
+  if (timer) { clearInterval(timer); timer = null; }
+  if (e.target.checked) {
+    timer = setInterval(function () { addEntry(); renderEntries(); }, 2000);
+  }
+}
+
+function renderEntries() {
+  bw.DOM('#entries', {
+    t: 'div',
+    c: entries.map(function (e) {
+      var meta = [
+        triops.fmtTime(e.ts) + ' (' + triops.fmtAgo(e.ts) + ')',
+        e.method, e.ip, e.bytes + ' bytes', e.ctype
+      ].join('  ·  ');
+
+      return bw.makeCard({
+        content: { t: 'div', c: [
+          { t: 'div', a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.4rem' }, c: meta },
+          triops.payloadTaco(e.body)
+        ]}
+      });
+    })
+  });
+}
+
+loginView();
+</script>
+</body>
+</html>

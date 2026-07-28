@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>triops — see what your hardware is actually sending</title>
+<meta name="description" content="A small PHP web server for inspecting what IoT hardware sends over HTTP. Unzip into a web directory and it runs. No dependencies.">
+<meta property="og:title" content="triops">
+<meta property="og:description" content="See what your hardware is actually sending. Unzip into a web directory and it runs.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+<!-- Copied from app/assets/ by the pages workflow, so the demo cannot drift
+     from the real UI. Run dev/build-site.sh to populate them locally. -->
+<script src="./assets/bitwrench.umd.min.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+bw.loadStyles({ primary: '#006666', secondary: '#cc6633' });
+
+var REPO = 'https://github.com/deftio/triops';
+
+function section(children, style) {
+  return { t: 'section', a: { class: 'bw_container', style: style || 'padding:2rem 1rem;max-width:52rem;margin:0 auto' }, c: children };
+}
+
+function code(text) {
+  return {
+    t: 'pre',
+    a: { class: 'bw_bccl_card', style: 'padding:0.9rem;overflow-x:auto;font-size:0.85rem;margin:0.75rem 0' },
+    c: text
+  };
+}
+
+bw.DOM('#app', { t: 'div', c: [
+
+  // ---- hero
+  section([
+    { t: 'img', a: { src: './assets/triops-logo.png', alt: 'triops', style: 'height:84px' } },
+    { t: 'h1', a: { style: 'margin:1rem 0 0.5rem' }, c: 'See what your hardware is actually sending.' },
+    { t: 'p', a: { style: 'font-size:1.1rem;opacity:0.85;max-width:40rem' },
+      c: 'A small web server for the other end of your device\'s HTTP connection. ' +
+         'Unzip it into a web directory and it runs — no database, no services, no build step, no dependencies.' },
+    { t: 'div', a: { style: 'display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.2rem' }, c: [
+      bw.makeButton({ text: 'Try the demo', href: './demo/', variant: 'primary' }),
+      bw.makeButton({ text: 'GitHub', href: REPO, variant: 'secondary' }),
+      bw.makeButton({ text: 'Docs', href: REPO + '/tree/master/docs', variant: 'secondary' })
+    ]}
+  ], 'padding:3rem 1rem 1rem;max-width:52rem;margin:0 auto'),
+
+  // ---- the problem
+  section([
+    { t: 'h2', c: 'The problem' },
+    { t: 'p', c: 'You have a board on your desk. The firmware posts a sensor reading somewhere. ' +
+                 'It is not arriving, or it is arriving wrong, and you cannot tell whether the problem is ' +
+                 'the WiFi, the HTTP client, the JSON encoder, a Content-Type header nobody set, or a ' +
+                 'payload that got truncated at 512 bytes.' },
+    { t: 'p', c: 'triops is the other end of that connection. Point the board at it and it shows you the ' +
+                 'bytes it received, the headers that came with them, and when they arrived.' },
+    code('$ curl -X POST \'http://192.168.1.40/triops/api/ingest.php?channel=lab\' \\\n' +
+         '       -H \'Content-Type: application/json\' \\\n' +
+         '       -d \'{"device":"esp32-01","temp_c":22.4}\'\n\n' +
+         '{"ok":true,"api":1,"data":{"channel":"lab","bytes":35,"stored":true}}'),
+    { t: 'p', a: { style: 'opacity:0.8' }, c: '…and it is on screen, parsed, with the raw bytes one click away.' }
+  ]),
+
+  // ---- where it fits
+  section([
+    { t: 'h2', c: 'Where it fits' },
+    { t: 'p', c: 'Somewhere between blinking an LED and having a real backend.' },
+    { t: 'p', c: 'Early on you are not testing your telemetry pipeline, you are testing whether the board ' +
+                 'can form a correct HTTP request at all. Standing up a real service to find that out is a ' +
+                 'detour, and pointing the board at a cloud endpoint means the failure is now somewhere in ' +
+                 'someone else\'s logs. What you want is a target on your own network that answers ' +
+                 'immediately and hides nothing.' },
+    { t: 'p', c: 'It runs on a Raspberry Pi, a NAS, an old laptop, or whatever shared host you already pay ' +
+                 'for. It works on a lab network with no internet connection. Nothing leaves your machine.' },
+    bw.makeCard({
+      title: 'It is not a production backend',
+      content: 'No clustering, no retention policy, no alerting, no TLS termination, no multi-tenancy. ' +
+               'It keeps the last few hundred payloads per channel and drops the rest. When you outgrow it ' +
+               'you are supposed to outgrow it — by then you know exactly what your device sends, which was ' +
+               'the point.'
+    })
+  ]),
+
+  // ---- what you get
+  section([
+    { t: 'h2', c: 'What you get' },
+    { t: 'p', c: 'The debug endpoints return plain text, deliberately. A device with a 2 KB HTTP client ' +
+                 'should not have to parse JSON to find out whether its clock is right.' },
+    bw.makeDataTable({
+      data: [
+        { endpoint: 'echo.php',        does: 'Your whole request played back: method, headers, query, body' },
+        { endpoint: 'bytes.php?n=4096', does: 'Exactly N bytes — find your receive buffer limit' },
+        { endpoint: 'delay.php?ms=2000', does: 'Answers slowly — test client timeouts' },
+        { endpoint: 'code.php?c=500',  does: 'Any status you ask for — test error paths' },
+        { endpoint: 'timestamp.php',   does: 'Server time to microseconds' },
+        { endpoint: 'api/ingest.php',  does: 'POST anything. The canonical device endpoint' },
+        { endpoint: 'view.php',        does: 'The inbox, newest first, parsed with a raw toggle' }
+      ]
+    })
+  ]),
+
+  // ---- install
+  section([
+    { t: 'h2', c: 'Install' },
+    { t: 'p', c: 'Four steps, and none of them is "edit a config file".' },
+    code('cd /var/www/html\n' +
+         'curl -LO ' + REPO + '/releases/latest/download/triops.zip\n' +
+         'unzip triops.zip\n' +
+         'chmod u+w triops/data'),
+    { t: 'p', c: 'Open it in a browser, create your account, point your device at api/ingest.php, ' +
+                 'and watch it arrive.' },
+    { t: 'p', a: { style: 'opacity:0.8' },
+      c: 'Requires PHP 8.0 or newer and a writable directory. SQLite is used when available and a plain ' +
+         'append-only text file when it is not, so there is nothing to install either way.' }
+  ]),
+
+  // ---- built with
+  section([
+    { t: 'h2', c: 'Built with bitwrench' },
+    { t: 'p', c: [
+      'This page and the whole triops interface are built with ',
+      { t: 'a', a: { href: 'https://github.com/deftio/bitwrench' }, c: 'bitwrench' },
+      ' — a zero-dependency UI library that builds pages from plain JavaScript objects with no build ' +
+      'step. That is why triops has a copy vendored and still works on a network with no internet.'
+    ]},
+    { t: 'p', a: { style: 'opacity:0.8' },
+      c: 'triops is a reasonable worked example if you want to see what a whole small app looks like: ' +
+         'auth, forms, tables, charts and dark mode in about 1500 lines.' }
+  ]),
+
+  { t: 'footer', a: { class: 'bw_container', style: 'padding:2rem 1rem 3rem;max-width:52rem;margin:0 auto;opacity:0.7;font-size:0.9rem' },
+    c: [
+      { t: 'a', a: { href: '#', onclick: function (e) { e.preventDefault(); bw.toggleThemeMode(); } }, c: 'light / dark' },
+      { t: 'span', c: '  ·  BSD 2-clause  ·  © 2020–2026 M A Chatterjee  ·  ' },
+      { t: 'a', a: { href: REPO }, c: 'source' }
+    ]}
+]});
+</script>
+</body>
+</html>
