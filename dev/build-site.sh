@@ -14,6 +14,12 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "${ROOT}/pages/assets"
 
+# Belt and braces. Publishing through the Actions path serves the artifact
+# as-is and never invokes Jekyll, so this is only insurance against Pages being
+# switched back to deploy-from-branch later — at which point Jekyll would
+# otherwise try to build the site and choke on anything underscore-prefixed.
+touch "${ROOT}/pages/.nojekyll"
+
 cp "${ROOT}/app/assets/bitwrench.umd.min.js" "${ROOT}/pages/assets/"
 cp "${ROOT}/app/assets/triops.js"            "${ROOT}/pages/assets/"
 cp "${ROOT}/app/assets/triops-logo.png"      "${ROOT}/pages/assets/"
