@@ -1,7 +1,19 @@
-node_modules
-.nyc_output
+# triops runtime state — never commit
+app/config.php
+app/data/*
+!app/data/.htaccess
+!app/data/index.php
+
+# build output — releases are attached to GitHub Releases, not committed
+dist/
+
+# editors / os
 *~
 *.log
-*.tgz
-pages/data
+.DS_Store
+
+# node (dev tooling only, never at runtime)
+node_modules
 coverage
+.nyc_output
+*.tgz
