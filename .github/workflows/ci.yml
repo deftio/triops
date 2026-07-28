@@ -38,6 +38,27 @@ jobs:
           echo "linted $(find app dev -name '*.php' | wc -l) files"
           exit $status
 
+      - name: Site assets and version have not drifted
+        # pages/ carries its own copies so it is just a directory of static
+        # files GitHub can serve directly — no build step, no staging, no
+        # deploy workflow. The cost of that is two copies, so check them here
+        # rather than building machinery to avoid the duplication.
+        run: |
+          status=0
+          for f in bitwrench.umd.min.js triops.js; do
+            if ! diff -q "app/assets/$f" "pages/assets/$f" > /dev/null; then
+              echo "::error::pages/assets/$f differs from app/assets/$f — copy it across"
+              status=1
+            fi
+          done
+          version=$(php -r "require 'app/lib/triops.php'; echo TRIOPS_VERSION;")
+          if ! grep -q "version: \"$version\"" pages/assets/version.js; then
+            echo "::error::pages/assets/version.js does not say $version"
+            status=1
+          fi
+          [ $status -eq 0 ] && echo "site assets match app/, version $version"
+          exit $status
+
       - name: Smoke test
         run: ./dev/smoke.sh
 

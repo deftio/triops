@@ -9,9 +9,8 @@
 <meta property="og:description" content="See what your hardware is actually sending. Unzip into a web directory and it runs.">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
-<!-- Staged from app/assets/ by dev/build-site.sh, so the site cannot drift from
-     the real UI and the version cannot drift from the code. These are not in
-     git; they are created at publish time. -->
+<!-- Plain files, committed alongside this page. bitwrench and triops.js are
+     copies of the ones in app/assets/; CI checks they have not drifted. -->
 <script src="./assets/bitwrench.umd.min.js"></script>
 <script src="./assets/version.js"></script>
 </head>
@@ -19,10 +18,8 @@
 
 <!--
   Visible fallback. Everything below is replaced once bitwrench renders, so if
-  you are reading this in a browser the script did not load — which is exactly
-  what happens when GitHub Pages is set to "Deploy from a branch" instead of
-  "GitHub Actions": pages/assets/ is generated at publish time and is not in
-  git, so it 404s and the page would otherwise be silently blank.
+  you are reading this in a browser then assets/bitwrench.umd.min.js did not
+  load and the page would otherwise be silently blank.
 -->
 <div id="app">
   <noscript><p>This page needs JavaScript. The project itself does not.</p></noscript>
@@ -35,8 +32,7 @@ if (typeof bw === 'undefined') {
     'border:1px solid #cc6633;border-radius:6px">' +
     '<h1 style="margin-top:0">triops</h1>' +
     '<p>The UI failed to load — <code>assets/bitwrench.umd.min.js</code> is missing.</p>' +
-    '<p>If you are the maintainer: set <b>Settings &rarr; Pages &rarr; Source</b> to ' +
-    '<b>GitHub Actions</b>. The assets are staged at publish time and are not committed.</p>' +
+    '<p>Check that <code>pages/assets/</code> was published alongside this page.</p>' +
     '<p><a href="https://github.com/deftio/triops">github.com/deftio/triops</a></p></div>';
   throw new Error('bitwrench failed to load');
 }

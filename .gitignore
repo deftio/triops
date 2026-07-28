@@ -18,14 +18,6 @@ coverage
 .nyc_output
 *.tgz
 
-# staged from app/assets by dev/build-site.sh
-pages/assets/bitwrench.umd.min.js
-pages/assets/triops.js
-pages/assets/triops-logo.png
-pages/assets/favicon.ico
-
 # dev tooling (playwright); never ships
 dev/node_modules
 dev/package-lock.json
-
-pages/assets/version.js

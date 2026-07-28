@@ -120,3 +120,15 @@ it after any change to `view.php` or the payload rendering.
 
 Playwright lives in `dev/package.json` and is dev-only. Nothing in `app/` has a
 dependency of any kind, and `dev/` is excluded from the release zip.
+
+## The site
+
+`pages/` is a directory of static files that GitHub serves directly from the
+branch — no build step, no staging script, no deploy workflow. It carries its
+own copies of `bitwrench.umd.min.js` and `triops.js` rather than referencing
+`app/assets/`, because a served directory has to be self-contained.
+
+That means two copies. Fine — they are pinned files that change rarely, and CI
+diffs them. If you change `app/assets/triops.js`, copy it to `pages/assets/`.
+Bump `pages/assets/version.js` when you bump `TRIOPS_VERSION`; CI checks that
+too.
