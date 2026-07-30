@@ -23,6 +23,50 @@ chmod u+w triops/data
 
 Then open `http://your-host/triops/`.
 
+## Three ways people actually run it
+
+triops runs where installing a real IoT backend would be unreasonable. Pick the
+one that matches your situation; the app is identical in all three.
+
+### 1. On your laptop, during firmware bring-up
+
+Nothing to install beyond PHP itself. The board and the laptop have to be on the
+same network, so bind to `0.0.0.0` rather than localhost.
+
+```sh
+php -S 0.0.0.0:8080 -t app
+```
+
+Point the firmware at `http://<your-laptop-ip>:8080/api/ingest.php`. Storage
+lands in `app/data/` and you can delete the folder when you are done. This is the
+disposable case: no config file, no account worth remembering, no persistence you
+care about.
+
+### 2. On a Raspberry Pi or a LAN box
+
+For a target that stays up between sessions — several boards reporting, or a soak
+test you want to look at tomorrow.
+
+```sh
+sudo apt install php-cli php-sqlite3       # sqlite3 is optional but nicer
+sudo cp -r app /var/www/html/triops
+sudo chown -R www-data:www-data /var/www/html/triops/data
+```
+
+Set an `ingest_key` in `config.php` if the LAN is not yours alone, and check
+`status.php` to confirm the sqlite driver was actually selected.
+
+### 3. Shared hosting or a NAS
+
+The case triops exists for, and the one Docker-based tools cannot reach: upload
+through a file manager or SFTP, open the URL, done. No shell access needed.
+
+Unzip the release, drag `app/` into `public_html/triops`, make `data/` writable
+(0755 is usually enough; some hosts need 0775), and load the page. If the host
+runs nginx, read the nginx section below first — the `.htaccess` files that
+protect `data/` do nothing there, and you should move the data directory out of
+the web root instead.
+
 ## From a git clone
 
 The deployable unit is the `app/` directory — nothing else in the repo is needed
@@ -127,6 +171,7 @@ change:
 | `ingest_key` | Require a shared secret on `api/ingest.php` |
 | `max_entries_per_channel` | Keep more or less history |
 | `max_payload_bytes` | Accept larger payloads |
+| `redact_keys` | Query and header names whose values are never stored |
 | `theme` | Two seed colors; bitwrench derives the rest |
 
 `config.php` is gitignored. Do not commit it.

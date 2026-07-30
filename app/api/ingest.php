@@ -6,7 +6,9 @@
  * a bare sensor reading. triops stores the bytes as received and parses only
  * when displaying, so a malformed payload is still visible rather than lost.
  *
- * Optionally gated by ingest_key in config, supplied as ?key= or X-Triops-Key.
+ * Optionally gated by ingest_key in config, sent as X-Triops-Key (or ?key= if
+ * the client cannot set headers). The key is redacted before the record is
+ * stored: a debugging tool must not turn a temporary secret into telemetry.
  * GET is accepted too: some minimal clients cannot POST.
  */
 require __DIR__ . '/../lib/triops.php';

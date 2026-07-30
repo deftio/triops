@@ -13,7 +13,7 @@
 declare(strict_types=1);
 
 define('TRIOPS', true);
-define('TRIOPS_VERSION', '0.2.0');
+define('TRIOPS_VERSION', '0.2.1');
 
 // Bumped only on a breaking change to /api. Clients feature-detect on this
 // integer instead of parsing the product version.
@@ -83,10 +83,25 @@ function t_err(string $message, string $code = 'error', int $status = 400): void
 
 function t_json(array $payload, int $status = 200): void
 {
+    $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+    // json_encode returns false on anything it cannot represent, and `echo false`
+    // is an empty string — which shipped a 200 with a JSON content type and no
+    // body, the least debuggable failure available. Say what happened instead.
+    if ($json === false) {
+        $status = 500;
+        $json   = (string) json_encode([
+            'ok'    => false,
+            'api'   => TRIOPS_API_VERSION,
+            'error' => 'Response could not be encoded: ' . json_last_error_msg(),
+            'code'  => 'encode_failed',
+        ]);
+    }
+
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    echo $json;
     exit;
 }
 
@@ -143,6 +158,51 @@ function t_request_headers(): array
     }
     ksort($out);
     return $out;
+}
+
+/**
+ * Replace the value of anything that looks like a credential with a marker.
+ *
+ * triops is a debugging tool, and a debugging tool must not quietly turn a
+ * temporary secret into permanent telemetry. `?key=...` was being stored in the
+ * record, shown in the inbox, and handed back by api/read.php — so a key pasted
+ * once to test a board outlived the test by however long the channel does.
+ *
+ * The value goes, the key stays: "an ingest key was supplied and it was wrong"
+ * is exactly what you need to see when a device cannot authenticate.
+ *
+ * Matching ignores case, dashes and underscores, so api_key, API-KEY and apikey
+ * are all one name.
+ *
+ * @param array<string,mixed> $map
+ * @return array<string,mixed>
+ */
+function t_redact(array $map): array
+{
+    static $deny = null;
+    if ($deny === null) {
+        $deny = [];
+        foreach ((array) t_config('redact_keys', []) as $name) {
+            $deny[t_redact_key((string) $name)] = true;
+        }
+    }
+
+    $out = [];
+    foreach ($map as $key => $value) {
+        if (isset($deny[t_redact_key((string) $key)])) {
+            $out[$key] = '[redacted]';
+        } elseif (is_array($value)) {
+            $out[$key] = t_redact($value);
+        } else {
+            $out[$key] = $value;
+        }
+    }
+    return $out;
+}
+
+function t_redact_key(string $name): string
+{
+    return str_replace(['-', '_'], '', strtolower($name));
 }
 
 /**
@@ -216,6 +276,7 @@ function t_status_report(): array
             'driver'          => $store->name(),
             'healthy'         => $healthy,
             'error'           => $error,
+            'fallback_reason' => t_store_fallback_reason(),
             'sqlite_present'  => class_exists('SQLite3'),
             'max_entries'     => (int) t_config('max_entries_per_channel', 512),
             'max_payload'     => (int) t_config('max_payload_bytes', 65536),

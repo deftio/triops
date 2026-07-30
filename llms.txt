@@ -1,8 +1,9 @@
 # triops
 
 > A small PHP web server for inspecting what IoT hardware actually sends over
-> HTTP. Unzip into a web directory and it runs: no dependencies, no database to
-> install, no build step. PHP 8.0+.
+> HTTP. Unzip into a web directory and it runs: no framework, no Composer
+> packages, no database server, no build system, no third-party service.
+> PHP 8.0+.
 
 ## What it is
 
@@ -33,9 +34,10 @@ integer changes only on a breaking API change, so nothing has to parse semver.
 
 These are not preferences. Code that violates them does not belong in triops.
 
-1. **No runtime dependencies.** No composer, no framework, no redis, no daemons,
-   no cron, no build step. The one vendored asset is bitwrench, pinned, because a
-   lab network may have no internet.
+1. **Nothing to install alongside it.** No composer, no framework, no redis, no
+   daemons, no cron, no build step. It needs PHP and a directory it can write to.
+   The one vendored asset is bitwrench, pinned and committed, because a lab
+   network may have no internet.
 2. **File-per-URL routing.** No front controller, no router, no mod_rewrite
    requirement. A directory is a namespace; `api/v2/` is how the API versions.
 3. **Runs on a plain shared host.** If it needs a long-running process or an
@@ -52,7 +54,7 @@ app/            the deployable unit — the release zip is exactly this director
   api/          JSON endpoints
   templates/    plain.php, api.php, page.php — copy one to add a page
   assets/       bitwrench.umd.min.js (vendored, pinned), triops.js, logos
-  data/         gitignored; sqlite db, ndjson files, users.json
+  data/         gitignored; sqlite db, ndjson files, users.php
 docs/           markdown
 pages/          GitHub Pages site: landing + a JS-mocked demo
 dev/            scratch; ships in nothing
@@ -116,7 +118,7 @@ Users are humans who log in. Devices are not users — they post to
 `api/ingest.php`, optionally gated by a shared `ingest_key` compared with
 `hash_equals`. There are no roles: logged-in versus not is the only distinction.
 
-Users live in `data/users.json`, not in the store, so auth still works when the
+Users live in `data/users.php`, not in the store, so auth still works when the
 database is corrupt and you can fix a lockout with a text editor. Passwords are
 `password_hash()`. Every state-changing form carries a CSRF token. There are no
 default credentials — first run forces account creation.

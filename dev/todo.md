@@ -84,6 +84,48 @@ has to argue for itself.
 - [x] nothing to file upstream — both apparent bitwrench issues were triops not
       reading the docs. See `dev/bitwrench-notes.md`.
 
+## Shipped in 0.2.1
+
+Correctness and trust boundaries. See CHANGELOG for the detail.
+
+- [x] binary-safe bodies — `body_encoding`, base64 for non-UTF-8, hex dump in the
+      inbox. ndjson was silently dropping these; sqlite was making the whole
+      channel unreadable.
+- [x] `t_json()` never emits an empty 200 again
+- [x] credentials redacted out of stored query params and headers (`redact_keys`)
+- [x] request headers stored and shown, with the same redaction
+- [x] TACO sanitiser is an allowlist enforcing the published schema; drift
+      checked in CI by `dev/check-taco-tags.php`
+- [x] ndjson append + compaction under one per-channel lock file, separate from
+      the data file because compaction renames over it
+- [x] sqlite opened and verified during driver selection; `fallback_reason` on
+      the status page
+- [x] `.dbname` → guarded `dbname.php`, migrated on first run
+- [x] smoke test asserts every real data file is unserveable, not just a canary
+- [x] smoke test covers concurrent ingestion, with `PHP_CLI_SERVER_WORKERS` so
+      it is actually concurrent
+- [x] `users.json` → `users.php` in the recovery instructions
+- [x] dependency claim reworded to what is actually true
+- [x] three deployment profiles in `docs/install.md`
+
+## Deliberately parked
+
+Considered for 0.2.1 and cut, because triops is a good mini tool and should stop
+there. Each of these makes it less distinctive, not more.
+
+- **configurable ingest responses** (status, delay, truncation) — firmware
+  developers do want to test retries and timeouts, but `code.php`, `delay.php`
+  and `bytes.php` already cover the response side, and connection-close cannot be
+  done portably under FPM anyway.
+- **the TACO console** — a page rendering a live device-driven UI over long
+  polling. Genuinely interesting, and a memorable demo, but it is a second
+  identity for a tool whose first one is finally clear. The wire schema is
+  written down; if it ever happens, snapshots and long polling, not patches and
+  websockets. Notes: `session_write_close()` before any wait loop or the poll
+  holds the session lock and freezes every other tab, and cap the wait near 10s
+  because each one occupies an Apache worker.
+- MQTT, dashboards, device registries, retention policies, more storage engines.
+
 ## Known rough edges
 
 - ndjson retains between N and 4N entries where sqlite retains exactly N.

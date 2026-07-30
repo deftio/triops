@@ -150,7 +150,9 @@ var triops = (function () {
    * view shut while you are still reading it — which is precisely when you are
    * most likely to have auto-refresh on.
    */
-  function payloadTaco(body, key, expanded) {
+  function payloadTaco(body, key, expanded, encoding) {
+    if (encoding === 'base64') return binaryTaco(body);
+
     var parsed = null;
     try { parsed = JSON.parse(body); } catch (err) { parsed = null; }
 
@@ -198,31 +200,167 @@ var triops = (function () {
   }
 
   /**
+   * The wire-safe element set.
+   *
+   * Kept as one space-separated string because CI diffs it against the `t` enum
+   * in docs/taco-wire.schema.json. A renderer that is laxer than the schema it
+   * publishes is worse than shipping no schema at all, and two hand-maintained
+   * lists drift the moment nobody is checking.
+   */
+  var TACO_TAGS = 'a abbr article aside b blockquote br button caption code dd ' +
+    'del div dl dt em figcaption figure footer h1 h2 h3 h4 h5 h6 header hr i ' +
+    'img ins label li main mark nav ol p pre section small span strong sub sup ' +
+    'table tbody td tfoot th thead time tr ul';
+
+  var TACO_TAG_SET = {};
+  TACO_TAGS.split(' ').forEach(function (tag) { TACO_TAG_SET[tag] = true; });
+
+  // A device that can post can post anything, including a tree deep enough to
+  // blow the stack or wide enough to hang the tab.
+  var TACO_MAX_DEPTH = 32;
+  var TACO_MAX_NODES = 2000;
+  var TACO_MAX_TEXT = 20000;
+
+  /**
    * A device can post a bitwrench TACO and have triops render it as live UI.
-   * Off unless allow_taco_render is set, and even then handlers are stripped:
-   * rendering attacker-supplied attributes is XSS with extra steps.
+   * Off unless allow_taco_render is set.
+   *
+   * This is an allowlist, and it has to be. Until 0.2.1 it stripped on* handlers
+   * and javascript: URLs and passed everything else through, which stops none of
+   * the tags that never needed a handler in the first place — iframe, object,
+   * embed, a script with a src — nor srcdoc, nor formaction. Anything not named
+   * in TACO_TAGS is dropped rather than rendered.
+   *
+   * Returns null when the document cannot be represented safely. Callers treat
+   * that as "not renderable" and show the raw payload, which is the honest
+   * outcome: you still get to see exactly what the device sent.
    */
   function sanitizeTaco(node) {
-    if (node === null || typeof node !== 'object') return node;
-    if (Object.prototype.toString.call(node) === '[object Array]') return node.map(sanitizeTaco);
+    return sanitizeNode(node, 0, { nodes: TACO_MAX_NODES });
+  }
 
-    var out = {};
-    if (node.t) out.t = String(node.t);
-    if (node.a && typeof node.a === 'object') {
+  function sanitizeNode(node, depth, budget) {
+    if (depth > TACO_MAX_DEPTH || budget.nodes <= 0) return null;
+    if (node === null || typeof node === 'undefined') return null;
+
+    if (typeof node === 'string') {
+      return node.length > TACO_MAX_TEXT ? node.slice(0, TACO_MAX_TEXT) + '…' : node;
+    }
+    if (typeof node === 'number' || typeof node === 'boolean') return String(node);
+    if (typeof node !== 'object') return null;
+
+    if (Object.prototype.toString.call(node) === '[object Array]') {
+      var list = [];
+      for (var i = 0; i < node.length; i++) {
+        var child = sanitizeNode(node[i], depth + 1, budget);
+        if (child !== null) list.push(child);
+      }
+      return list;
+    }
+
+    var tag = String(node.t || '').toLowerCase();
+    if (TACO_TAG_SET[tag] !== true) return null;
+    budget.nodes--;
+
+    var out = { t: tag };
+
+    if (node.a && typeof node.a === 'object' &&
+        Object.prototype.toString.call(node.a) !== '[object Array]') {
       out.a = {};
-      Object.keys(node.a).forEach(function (k) {
-        var lower = k.toLowerCase();
-        // No event handlers, no javascript: urls, no inline script vectors.
-        if (lower.indexOf('on') === 0) return;
-        if (lower === 'href' || lower === 'src') {
-          if (/^\s*javascript:/i.test(String(node.a[k]))) return;
-        }
-        out.a[k] = node.a[k];
+      Object.keys(node.a).forEach(function (name) {
+        var value = node.a[name];
+        // The schema allows scalars only. An object here is either a mistake or
+        // an attempt to smuggle something past String().
+        if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return;
+        if (!safeAttrName(name)) return;
+
+        var lower = name.toLowerCase();
+        if ((lower === 'href' || lower === 'src') && !safeUrl(String(value))) return;
+
+        out.a[name] = value;
       });
     }
-    if (typeof node.c !== 'undefined') out.c = sanitizeTaco(node.c);
+
+    if (typeof node.c !== 'undefined') {
+      var content = sanitizeNode(node.c, depth + 1, budget);
+      if (content !== null) out.c = content;
+    }
+
     // o carries functions and lifecycle hooks. Never accept it from the wire.
     return out;
+  }
+
+  function safeAttrName(name) {
+    var lower = String(name).toLowerCase();
+    if (lower.indexOf('on') === 0) return false;
+    // style is not a script vector in a current browser, but it is a defacement
+    // vector: a fixed, full-viewport, high-z-index node covering the page it was
+    // supposed to be a card inside. srcdoc and formaction are script vectors.
+    if (lower === 'style' || lower === 'srcdoc' || lower === 'formaction') return false;
+    return /^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(String(name));
+  }
+
+  /** Allowlist, not a denylist: relative, http, https, mailto. Nothing else. */
+  function safeUrl(url) {
+    if (/^\s/.test(url)) return false;
+    if (/^(https?:\/\/|mailto:)/i.test(url)) return true;
+    // No scheme at all is a relative URL. "anything:" we did not name is out,
+    // which covers javascript:, data:, vbscript:, blob: and whatever is next.
+    return !/^[A-Za-z][A-Za-z0-9+.\-]*:/.test(url);
+  }
+
+  /**
+   * Bodies that are not valid UTF-8 arrive base64'd, and a hex dump is the only
+   * honest way to show them: a CBOR frame, a protobuf, a compressed packet, or a
+   * length prefix where you expected a brace. This is the case you opened triops
+   * to look at, so it gets offsets and an ASCII gutter rather than an apology.
+   */
+  function binaryTaco(b64) {
+    var bytes;
+    try {
+      bytes = atob(b64);
+    } catch (err) {
+      return { t: 'pre', c: '(body could not be decoded)' };
+    }
+
+    var limit = Math.min(bytes.length, 1024);
+    var rows = [];
+
+    for (var i = 0; i < limit; i += 16) {
+      var hex = '';
+      var txt = '';
+      for (var j = 0; j < 16; j++) {
+        if (i + j >= limit) { hex += '   '; continue; }
+        var c = bytes.charCodeAt(i + j) & 0xff;
+        hex += (c < 16 ? '0' : '') + c.toString(16) + ' ';
+        txt += (c >= 32 && c < 127) ? bytes.charAt(i + j) : '.';
+      }
+      rows.push(('0000' + i.toString(16)).slice(-4) + '  ' + hex + ' |' + txt + '|');
+    }
+
+    if (bytes.length > limit) {
+      rows.push('… ' + (bytes.length - limit) + ' more bytes');
+    }
+
+    return {
+      t: 'div',
+      c: [
+        {
+          t: 'div',
+          a: { style: 'font-size:0.8rem;opacity:0.7;margin:0.5rem 0 0.2rem' },
+          c: 'binary — ' + bytes.length + ' bytes, not valid UTF-8'
+        },
+        {
+          t: 'pre',
+          a: {
+            style: 'white-space:pre;margin:0;padding:0.6rem;border-radius:4px;' +
+                   'font-size:0.8rem;overflow-x:auto',
+            class: 'bw_bccl_card'
+          },
+          c: rows.join('\n')
+        }
+      ]
+    };
   }
 
   function fmtTime(ts) {
@@ -243,7 +381,9 @@ var triops = (function () {
     baseStyles: baseStyles,
     jsonTaco: jsonTaco,
     payloadTaco: payloadTaco,
+    binaryTaco: binaryTaco,
     sanitizeTaco: sanitizeTaco,
+    tacoTags: TACO_TAGS,
     fmtTime: fmtTime,
     fmtAgo: fmtAgo
   };

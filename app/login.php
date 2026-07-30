@@ -42,7 +42,7 @@ t_page_open('Log in', false);
     <p><button class="bw_bccl_btn bw_primary" type="submit">Log in</button></p>
   </form>
   <p style="font-size:0.85rem;opacity:0.7">
-    Locked out? Delete <code>app/data/users.json</code> and reload — triops will
+    Locked out? Delete <code>app/data/users.php</code> and reload — triops will
     ask you to create a new account.
   </p>
 </div>

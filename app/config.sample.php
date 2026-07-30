@@ -17,8 +17,9 @@ return [
     // Any value from https://www.php.net/manual/en/timezones.php
     'timezone' => 'UTC',
 
-    // 'auto' picks sqlite when the SQLite3 extension is present, else ndjson.
-    // Force 'ndjson' if you want to watch payloads land with:  tail -f app/data/ch-*.ndjson
+    // 'auto' picks sqlite when the SQLite3 extension is present and the database
+    // actually opens, else ndjson. status.php reports which one won and why.
+    // Force 'ndjson' to watch payloads land:  tail -f app/data/ch-*.ndjson.php
     'store' => 'auto',
 
     // Where payloads, users and the database live. Must be writable by the web server.
@@ -41,12 +42,28 @@ return [
     'default_channel' => 'default',
 
     // Leave empty and anyone who can reach the server can post.
-    // Set it and ingest requires  ?key=...  or  X-Triops-Key: ...
+    // Set it and ingest requires  X-Triops-Key: ...  (or ?key=... for clients
+    // that cannot set headers — but a URL ends up in logs, and a header does
+    // not). Either way the value is never written into the stored record.
     'ingest_key' => '',
+
+    // Query parameters and request headers whose values are never written down.
+    // Matched without regard to case, dashes or underscores, so one entry covers
+    // api_key, API-KEY and apikey. The name is kept and the value becomes
+    // [redacted], so you can still see that a credential was sent.
+    'redact_keys' => [
+        'key', 'token', 'password', 'passwd', 'secret', 'auth', 'authorization',
+        'proxy-authorization', 'cookie', 'set-cookie', 'api-key', 'access-token',
+        'x-triops-key', 'x-api-key', 'x-auth-token', 'session', 'sig', 'signature',
+    ],
 
     // Devices can post a bitwrench TACO ({t,a,c,o}) and have triops render it
     // as live UI. Off by default: rendering attacker-supplied attributes is XSS.
-    // Event handlers and the options block are stripped even when this is on.
+    //
+    // When on, the payload is checked against docs/taco-wire.schema.json — an
+    // allowlist of elements and attributes, not a filter. Anything not named
+    // there is dropped, and a document that fails outright is shown as raw text
+    // like any other payload.
     'allow_taco_render' => false,
 
     // Seed colors. bitwrench derives the full palette, including dark mode.

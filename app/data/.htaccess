@@ -1,10 +1,10 @@
-# Payloads, users.json and the sqlite database live here.
+# Payloads, users.php and the sqlite database live here.
 #
 # This directory MUST NOT be readable over HTTP. On Apache this file handles it.
 # On nginx you need a location block — see docs/install.md — or move data_dir
 # outside the web root entirely, which is better on any host that lets you.
 #
-# Belt and braces: ndjson data files and users.json each begin with a PHP exit
+# Belt and braces: ndjson data files and users.php each begin with a PHP exit
 # line, so their contents do not leak even if this file is ignored. The sqlite
 # database cannot do that, which is why its filename carries a random suffix.
 Require all denied

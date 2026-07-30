@@ -6,7 +6,7 @@
   <a href="https://github.com/deftio/triops/actions"><img src="https://github.com/deftio/triops/workflows/ci/badge.svg" alt="ci"></a>
   <a href="./LICENSE.txt"><img src="https://img.shields.io/badge/license-BSD--2--Clause-blue.svg" alt="license"></a>
   <img src="https://img.shields.io/badge/php-8.0%2B-777bb4.svg" alt="php 8.0+">
-  <img src="https://img.shields.io/badge/dependencies-none-brightgreen.svg" alt="no dependencies">
+  <img src="https://img.shields.io/badge/composer-not%20required-brightgreen.svg" alt="no composer packages required">
 </p>
 
 # triops
@@ -20,8 +20,12 @@ or a payload that got truncated at 512 bytes.
 
 triops is the other end of that connection. Point the board at it and it shows
 you the bytes it received, the headers that came with them, and when they
-arrived. Unzip it into a web directory and it runs — no database to install, no
-services to start, no build step, no dependencies.
+arrived. Unzip it into a web directory and it runs: no framework, no Composer
+packages, no database server, no build system, and no third-party service.
+
+If you have somewhere to put a PHP file, you have somewhere to put triops. That
+includes the shared hosting you already pay for, a Raspberry Pi on the bench, and
+the NAS in the cupboard.
 
 ```
 $ curl -X POST 'http://192.168.1.40/triops/api/ingest.php?channel=lab' \

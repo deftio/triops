@@ -59,19 +59,29 @@ jobs:
           [ $status -eq 0 ] && echo "site assets match app/, version $version"
           exit $status
 
+      - name: Renderer matches the published TACO schema
+        # The allowlist exists in two places by necessity: JSON Schema is what
+        # other people validate against, and the browser cannot read it without
+        # a fetch triops does not want to make. So diff them here instead —
+        # a renderer laxer than its own published schema is worse than no schema.
+        run: php dev/check-taco-tags.php
+
+      - name: TACO sanitiser rejects hostile documents
+        # The one place a device's bytes become UI rather than text on a page,
+        # so the one place getting it wrong is more than a display bug.
+        run: node dev/check-taco-sanitizer.mjs
+
       - name: Smoke test
         run: ./dev/smoke.sh
 
       - name: Smoke test with the ndjson driver
         # The fallback path has to work on hosts with no sqlite extension, so
         # exercise it explicitly rather than trusting auto-detection.
-        run: |
-          cat > app/config.php <<'EOF'
-          <?php
-          return ['store' => 'ndjson'];
-          EOF
-          PORT=8798 ./dev/smoke.sh
-          rm -f app/config.php
+        #
+        # STORE, not a config.php written here: smoke.sh writes that file itself
+        # to redirect data_dir, so a driver set this way was silently discarded
+        # and this job spent its life testing sqlite a second time.
+        run: STORE=ndjson PORT=8798 ./dev/smoke.sh
 
   no-sqlite:
     # Prove triops still runs when the sqlite extension is simply absent, which

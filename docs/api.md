@@ -47,8 +47,12 @@ redirect — an API client handed a 302 to a login form cannot do anything usefu
 with it.
 
 Device ingest is separate. If `ingest_key` is set in config, `api/ingest.php`
-requires it as `?key=` or an `X-Triops-Key` header, compared with `hash_equals`.
-Devices do not have accounts.
+requires it as an `X-Triops-Key` header, compared with `hash_equals`. Devices do
+not have accounts.
+
+`?key=` is still accepted for clients that cannot set a header, but prefer the
+header: a query string ends up in access logs, proxy logs and shell history,
+none of which triops controls. Neither form is written into the stored record.
 
 ---
 
@@ -62,7 +66,7 @@ curl http://host/triops/api/version.php
 
 ```json
 { "ok": true, "api": 1,
-  "data": { "name": "triops", "version": "0.2.0", "api": 1 } }
+  "data": { "name": "triops", "version": "0.2.1", "api": 1 } }
 ```
 
 ---
@@ -78,7 +82,7 @@ GET is accepted too, since some minimal clients cannot POST.
 | Parameter | Default | Meaning |
 |---|---|---|
 | `channel` | `default` | Where to file it. Stripped to `[A-Za-z0-9_-]` |
-| `key` | — | Required only if `ingest_key` is configured |
+| `key` | — | Required only if `ingest_key` is configured, and only if you cannot send `X-Triops-Key` |
 
 ```sh
 curl -X POST 'http://host/triops/api/ingest.php?channel=lab' \
@@ -132,10 +136,20 @@ between UI-as-data and UI-as-syntax: you cannot write this schema for JSX,
 because JSX is a program.
 
 **Enforcement note:** the runtime guard is `triops.sanitizeTaco()` in
-`app/assets/triops.js`, which strips the same things client-side. triops does
-not validate against the schema at runtime — that would mean a JSON Schema
-library, and `app/` has no dependencies. The schema is the specification and the
-sanitiser is the enforcement; if you change one, check the other.
+`app/assets/triops.js`. It is an allowlist — an element not named in the schema
+is dropped, an attribute not permitted by the schema is dropped, and a URL
+scheme outside `http`, `https`, `mailto` or relative is dropped. A document that
+cannot be represented safely is not rendered at all; you see the raw payload
+instead, which is the honest outcome.
+
+triops does not run a JSON Schema validator at runtime — that would mean a
+dependency, and `app/` has none. The schema is the specification and the
+sanitiser is the enforcement, so `dev/check-taco-tags.php` diffs the element
+allowlist in the two files and CI fails if they disagree. A renderer laxer than
+its own published schema is worse than shipping no schema.
+
+Depth, node-count and text-length limits are also enforced, because a device
+that can post can post a tree deep enough to blow the stack.
 
 ---
 
@@ -162,13 +176,56 @@ curl -b cookies.txt 'http://host/triops/api/read.php?channel=lab&n=2'
     "ctype": "application/json",
     "bytes": 15,
     "query": { "channel": "lab" },
-    "body": "{\"temp_c\":22.4}"
+    "headers": {
+      "Host": "host",
+      "Content-Type": "application/json",
+      "Content-Length": "15",
+      "User-Agent": "ESP32HTTPClient",
+      "X-Triops-Key": "[redacted]"
+    },
+    "body": "{\"temp_c\":22.4}",
+    "body_encoding": "utf-8"
   }]
 }}
 ```
 
-`body` is the raw bytes as received, never re-encoded. `ts` is a Unix timestamp
-with fractional seconds.
+`ts` is a Unix timestamp with fractional seconds. `bytes` is always the length of
+what the device actually sent, before any encoding applied below.
+
+### `body` and `body_encoding`
+
+`body_encoding` is `utf-8` or `base64`, and you have to look at it before using
+`body`.
+
+JSON cannot carry arbitrary bytes. A device sending CBOR, protobuf, a compressed
+payload, a length-prefixed frame, or simply a buffer with a bug in it produces
+something no JSON encoder will accept — so triops base64s those bodies and says
+so. Valid UTF-8 is stored and returned as-is.
+
+```
+body_encoding == "utf-8"    body is the text, unchanged
+body_encoding == "base64"   base64-decode body to get the bytes
+```
+
+Entries stored before 0.2.1 have no `body_encoding`; treat a missing field as
+`utf-8`.
+
+### `query` and `headers`
+
+Both are recorded as the server saw them, with one exception: anything whose name
+matches `redact_keys` in config has its **value** replaced with `[redacted]`. The
+name is kept, because "a key was sent and it was the wrong one" is exactly what
+you need to see when a device cannot authenticate.
+
+By default that covers `key`, `token`, `password`, `secret`, `authorization`,
+`cookie`, `x-triops-key` and similar. Matching ignores case, dashes and
+underscores, so one entry covers `api_key`, `API-KEY` and `apikey`.
+
+This is why the docs use the `X-Triops-Key` header rather than `?key=` — not
+because the header is more secret in transit, but because a URL is the thing that
+ends up in logs, proxies and shell history. Neither form is stored.
+
+Entries stored before 0.2.1 have no `headers`; treat a missing field as `{}`.
 
 ---
 
@@ -179,7 +236,7 @@ wrong, and the same data `status.php` renders.
 
 ```json
 { "ok": true, "api": 1, "data": {
-  "triops_version": "0.2.0",
+  "triops_version": "0.2.1",
   "api_version": 1,
   "php_version": "8.4.6",
   "bitwrench": "2.1.3",

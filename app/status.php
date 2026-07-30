@@ -60,6 +60,12 @@ t_page_close(true, ['status' => t_status_report()]);
     row('device TACO render', s.taco_render ? 'enabled' : 'disabled'),
     row('server time', s.server_time)
   ];
+  // Why you are on the driver you are on. Silent fallback is the confusing kind:
+  // everything works, slower and with a different retention shape, and nothing
+  // says so.
+  if (s.store.fallback_reason) {
+    checks.push(row('sqlite not used', s.store.fallback_reason, s.store.sqlite_present));
+  }
   if (s.store.error) checks.push(row('store error', s.store.error, true));
 
   var channelBlock = s.channels.length

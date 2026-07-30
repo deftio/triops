@@ -20,7 +20,15 @@ pass=0
 fail=0
 
 cleanup() {
-    [ -n "${SRV:-}" ] && kill "$SRV" 2>/dev/null
+    if [ -n "${SRV:-}" ]; then
+        # PHP_CLI_SERVER_WORKERS forks children, and killing the parent leaves
+        # them alive and still bound to the port. They then serve the next run
+        # from a config file that has since been rewritten, which looks exactly
+        # like a flaky test and is not one.
+        pkill -P "$SRV" 2>/dev/null
+        kill "$SRV" 2>/dev/null
+        wait "$SRV" 2>/dev/null
+    fi
     rm -rf "$TMP"
     rm -f "${ROOT}/app/config.php"
 }
@@ -48,20 +56,56 @@ check_body() {
     esac
 }
 
+# $1 label  $2 substring that must NOT appear  $3 url  [$4 curl args...]
+check_absent() {
+    local label="$1" forbidden="$2" url="$3"; shift 3
+    local got
+    got="$(curl -s -c "$JAR" -b "$JAR" "$@" "${BASE}${url}")"
+    case "$got" in
+        *"$forbidden"*) bad "$label" "no '$forbidden' anywhere" "$(printf '%s' "$got" | head -c 160)" ;;
+        *) ok "$label" ;;
+    esac
+}
+
 # Point the data dir at a throwaway location so a local install is untouched.
+#
+# STORE picks the driver. It has to be threaded through here rather than written
+# to app/config.php by the caller, because this script *writes* that file — so a
+# caller setting store=ndjson had it silently clobbered and tested sqlite twice.
 mkdir -p "$DATA"
-cat > "${ROOT}/app/config.php" <<EOF
+write_config() {
+    cat > "${ROOT}/app/config.php" <<EOF
 <?php
-return ['data_dir' => '${DATA}'];
+return [
+    'data_dir' => '${DATA}',
+    'store' => '${STORE:-auto}',
+    'max_entries_per_channel' => ${MAX_ENTRIES:-512},
+];
 EOF
+}
+write_config
 
-php -S "127.0.0.1:${PORT}" -t "${ROOT}/app" >"${TMP}/server.log" 2>&1 &
-SRV=$!
+# PHP_CLI_SERVER_WORKERS is what makes the concurrency test mean anything: the
+# built-in server handles one request at a time otherwise, so simultaneous posts
+# would queue up neatly and never exercise the locking they exist to test.
+start_server() {
+    PHP_CLI_SERVER_WORKERS=8 php -S "127.0.0.1:${PORT}" -t "${ROOT}/app" >>"${TMP}/server.log" 2>&1 &
+    SRV=$!
+    for _ in $(seq 1 40); do
+        curl -s -o /dev/null "${BASE}/api/version.php" && return
+        sleep 0.25
+    done
+}
 
-for _ in $(seq 1 40); do
-    curl -s -o /dev/null "${BASE}/api/version.php" && break
-    sleep 0.25
-done
+stop_server() {
+    [ -n "${SRV:-}" ] || return
+    pkill -P "$SRV" 2>/dev/null
+    kill "$SRV" 2>/dev/null
+    wait "$SRV" 2>/dev/null
+    SRV=""
+}
+
+start_server
 
 echo "triops smoke test — ${BASE}"
 echo
@@ -94,9 +138,118 @@ check_status "read works once authed"   "200"                "/api/read.php?chan
 check_body   "read returns the payload" '"body": "{\"t\":1}"' "/api/read.php?channel=smoke"
 check_status "status works once authed" "200"                "/api/status.php"
 check_body   "status names the driver"  '"driver"'           "/api/status.php"
+
+echo
+echo "binary payloads"
+# The promise is "triops stores the bytes your device sent". Bodies that are not
+# valid UTF-8 cannot go through JSON at all: before 0.2.1 the ndjson driver wrote
+# a blank line and lost the packet outright, and under sqlite the row stored but
+# every later read of that channel came back with an empty body. Both silent.
+printf '\xff\xfe\x01\x02' > "${TMP}/binary.bin"
+printf 'ok\x00nul' > "${TMP}/nulbyte.bin"
+
+check_status "binary body accepted"     "200"                     "/api/ingest.php?channel=binary" \
+    -X POST --data-binary "@${TMP}/binary.bin"
+check_body   "binary body is labelled"  '"body_encoding": "base64"' "/api/read.php?channel=binary"
+check_body   "binary body survives"     '"body": "//4BAg=="'      "/api/read.php?channel=binary"
+check_body   "binary byte count is raw" '"bytes": 4'              "/api/read.php?channel=binary"
+
+check_status "null byte accepted"       "200"                     "/api/ingest.php?channel=nulbyte" \
+    -X POST --data-binary "@${TMP}/nulbyte.bin"
+check_body   "null byte body survives"  '"body": "b2sAbnVs"'      "/api/read.php?channel=nulbyte"
+
+# A binary packet must not poison the channel for everything after it.
+check_status "text after binary lands"  "200"                     "/api/ingest.php?channel=binary" \
+    -X POST -d 'after-the-binary'
+check_body   "channel still readable"   'after-the-binary'        "/api/read.php?channel=binary"
+check_body   "text stays text"          '"body_encoding": "utf-8"' "/api/read.php?channel=binary"
+
+echo
+echo "credentials are not stored"
+# A key pasted once to test a board should not outlive the test. The name stays
+# so "a credential was sent and it was wrong" is still visible; the value goes.
+check_status "post with credentials"    "200"                "/api/ingest.php?channel=creds&key=hunter2&token=abc123" \
+    -X POST -d 'x' -H "Authorization: Bearer secret-bearer" -H "X-Triops-Key: secret-header"
+check_body   "credential name kept"     '"key": "[redacted]"' "/api/read.php?channel=creds"
+check_absent "query key not stored"     'hunter2'            "/api/read.php?channel=creds"
+check_absent "query token not stored"   'abc123'             "/api/read.php?channel=creds"
+check_absent "auth header not stored"   'secret-bearer'      "/api/read.php?channel=creds"
+check_absent "ingest key not stored"    'secret-header'      "/api/read.php?channel=creds"
+
+echo
+echo "request headers are recorded"
+check_status "post with a header"       "200"                "/api/ingest.php?channel=hdrs" \
+    -X POST -d 'x' -H "X-Device-Id: esp32-01" -H "Content-Type: application/cbor"
+check_body   "custom header stored"     'X-Device-Id'        "/api/read.php?channel=hdrs"
+check_body   "header value stored"      'esp32-01'           "/api/read.php?channel=hdrs"
+check_body   "content-length stored"    'Content-Length'     "/api/read.php?channel=hdrs"
 check_status "setup closes after first" "302"                "/setup.php"
 check_status "clear rejects GET"        "405"                "/api/clear.php?channel=smoke"
 check_status "clear accepts POST"       "200"                "/api/clear.php?channel=smoke" -X POST
+
+echo
+echo "concurrent ingestion"
+# Devices reconnect together and report together, so the inbox has to survive a
+# burst.
+#
+# Be clear about what this proves. It is a guard against gross failure under
+# load — packets dropped, the ring ignored, the newest write lost, the file left
+# unreadable. It is NOT a detector for the specific compaction race 0.2.1 fixed:
+# that needs an append to land in the window between compaction reading the file
+# and renaming a replacement over it, and a burst of forty does not reliably hit
+# a window that narrow. Verified by reverting the fix — this still passes. The
+# fix stands on the reasoning, not on this test.
+BURST=40
+
+# Bare `wait` would also wait on the php -S server, which never exits. Wait on
+# the curls by pid.
+burst_post() {
+    local channel="$1" prefix="$2" pids="" i
+    for i in $(seq 1 $BURST); do
+        # No cookie jar here: parallel curls sharing one jar file corrupt it,
+        # and ingest does not need auth anyway.
+        curl -s -o /dev/null -X POST -d "${prefix}-${i}" \
+            "${BASE}/api/ingest.php?channel=${channel}" &
+        pids="${pids} $!"
+    done
+    wait $pids
+}
+
+burst_post burst burst
+
+landed="$(curl -s -c "$JAR" -b "$JAR" "${BASE}/api/read.php?channel=burst&n=200" | grep -c '"body": "burst-')"
+[ "$landed" = "$BURST" ] \
+    && ok "all ${BURST} concurrent posts landed" \
+    || bad "concurrent posts landed" "${BURST} entries" "${landed} entries"
+
+# Again, with the ring tightened so compaction actually runs mid-burst rather
+# than after 2048 entries. The ring is meant to drop old entries; what it is not
+# meant to do is corrupt the file or lose the newest write.
+# Restart with the tight ring rather than rewriting config under a running
+# server: workers pick up a config change on their own schedule, and a test that
+# depends on when they do is a test that fails for reasons unrelated to locking.
+stop_server
+MAX_ENTRIES=5 write_config
+start_server
+
+burst_post squeeze squeeze
+curl -s -o /dev/null -X POST -d "squeeze-last" "${BASE}/api/ingest.php?channel=squeeze"
+
+squeezed="$(curl -s -c "$JAR" -b "$JAR" "${BASE}/api/read.php?channel=squeeze&n=200")"
+kept="$(printf '%s' "$squeezed" | grep -c '"body": "squeeze')"
+if [ "$kept" -ge 5 ] && [ "$kept" -le 20 ]; then
+    ok "compaction under load holds the ring (${kept} entries)"
+else
+    bad "compaction under load holds the ring" "between 5 and 20 entries" "${kept} entries"
+fi
+case "$squeezed" in
+    *'"body": "squeeze-last"'*) ok "newest entry survives compaction" ;;
+    *) bad "newest entry survives compaction" "squeeze-last present" "missing" ;;
+esac
+
+stop_server
+write_config
+start_server
 
 echo
 echo "safety"
@@ -129,6 +282,26 @@ case "$unguarded" in
 esac
 
 rm -f "${ROOT}/app/data/canary.php" "${ROOT}/app/data/canary.json"
+
+# The canary proves the mechanism. These prove it is actually applied to every
+# file triops generates — which is the part that matters, and which an obscure
+# filename is not a substitute for. Each runs under both drivers: when a file
+# does not exist for the active driver the request 404s, which also passes.
+#
+# The data dir is $DATA, outside the webroot, so these are requested through the
+# app/data/ path that a default install would expose.
+check_status "post to name a data file" "200" "/api/ingest.php?channel=leak" -X POST -d 'LEAK-CANARY-BODY'
+
+check_absent "ndjson data file not served"  'LEAK-CANARY-BODY' "/data/ch-leak.ndjson.php"
+check_absent "ndjson lock file not served"  '<?php'            "/data/ch-leak.lock.php"
+check_absent "users file not served"        'smoke'            "/data/users.php"
+check_absent "password hash not served"     '$2y$'             "/data/users.php"
+# The marker naming the sqlite database. 0.2.0 wrote it to a bare .dbname, which
+# is served as text by anything ignoring .htaccess — handing out the one filename
+# the random suffix exists to hide.
+check_absent "db name marker not served"    '.sqlite'          "/data/dbname.php"
+check_absent "legacy db marker is gone"     '.sqlite'          "/data/.dbname"
+check_absent "data dir does not list"       'ch-leak'          "/data/"
 
 echo
 echo "html pages"

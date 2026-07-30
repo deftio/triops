@@ -28,10 +28,10 @@
         },
 
         "a": {
-          "description": "Attributes. propertyNames blocks every on* handler by pattern rather than by list, so a new event name cannot slip through. Interactivity travels as a NAME, not a function: `action: \"restart-pump\"` (or the class bw_act_restart-pump that bitwrench's action param emits) means the client dispatches through a registry it already owns. The sender proposes intent; the receiver decides what intent does, and can refuse. That is what lets a button cross a trust boundary when a handler never could.",
+          "description": "Attributes. propertyNames blocks every on* handler by pattern rather than by list, so a new event name cannot slip through, and names three more by hand: srcdoc and formaction execute, and style is a defacement vector — a fixed, full-viewport node covering the page it was meant to be a card inside. Interactivity travels as a NAME, not a function: `action: \"restart-pump\"` (or the class bw_act_restart-pump that bitwrench's action param emits) means the client dispatches through a registry it already owns. The sender proposes intent; the receiver decides what intent does, and can refuse. That is what lets a button cross a trust boundary when a handler never could.",
           "type": "object",
           "propertyNames": {
-            "pattern": "^(?!(?i:on))[A-Za-z_:][-A-Za-z0-9_:.]*$"
+            "pattern": "^(?!(?i:on|style$|srcdoc$|formaction$))[A-Za-z_:][-A-Za-z0-9_:.]*$"
           },
           "additionalProperties": {
             "type": ["string", "number", "boolean"]
@@ -63,9 +63,9 @@
     },
 
     "safeUrl": {
-      "description": "Relative, http, https, or mailto. Excludes javascript:, data: and vbscript:.",
+      "description": "Relative, http, https, or mailto — an allowlist, so blob:, filesystem: and whatever ships next are excluded without needing to be named. Leading whitespace is rejected outright: browsers trim it before resolving the scheme, so ' javascript:...' is a URL that looks relative to a naive check and is not one to the browser.",
       "type": "string",
-      "pattern": "^(?!\\s*(?i:javascript|data|vbscript):)(?:[a-zA-Z0-9._~/?#@!$&'()*+,;=%-]|https?://|mailto:).*$"
+      "pattern": "^(?!\\s)(?:(?:https?://|mailto:).*|(?![A-Za-z][A-Za-z0-9+.\\-]*:).*)$"
     }
   }
 }

@@ -121,21 +121,46 @@ t_page_close(true, [
           ]});
         }
 
-        // Opt-in: let a device drive the display by posting a TACO.
-        if (TRIOPS_DATA.allowTaco) {
+        // Collapsed, because a dozen headers would bury the payload — but
+        // present, because a good half of embedded HTTP bugs are a wrong
+        // Content-Length or a Transfer-Encoding the server will not take.
+        if (e.headers && Object.keys(e.headers).length) {
+          body.push({
+            t: 'details',
+            a: { style: 'margin-bottom:0.4rem' },
+            c: [
+              {
+                t: 'summary',
+                a: { style: 'cursor:pointer;font-size:0.85rem;opacity:0.8' },
+                c: Object.keys(e.headers).length + ' headers'
+              },
+              { t: 'div', a: { style: 'margin-top:0.3rem' }, c: triops.jsonTaco(e.headers) }
+            ]
+          });
+        }
+
+        // Opt-in: let a device drive the display by posting a TACO. A payload
+        // that fails the wire schema falls through to the raw view rather than
+        // being rendered partially — you still see it, just not as UI.
+        if (TRIOPS_DATA.allowTaco && e.body_encoding !== 'base64') {
           try {
             var maybe = JSON.parse(e.body);
             if (maybe && maybe.t) {
-              body.push(bw.makeCard({
-                title: 'device-rendered',
-                content: triops.sanitizeTaco(maybe)
-              }));
-              return bw.makeCard({ content: { t: 'div', c: body } });
+              var safe = triops.sanitizeTaco(maybe);
+              if (safe) {
+                body.push(bw.makeCard({ title: 'device-rendered', content: safe }));
+                return bw.makeCard({ content: { t: 'div', c: body } });
+              }
+              body.push({
+                t: 'div',
+                a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.4rem' },
+                c: 'not rendered: fails the wire-safe TACO schema'
+              });
             }
           } catch (err) { /* not a TACO, fall through */ }
         }
 
-        body.push(triops.payloadTaco(e.body, String(e.ts), expanded));
+        body.push(triops.payloadTaco(e.body, String(e.ts), expanded, e.body_encoding));
         return bw.makeCard({ content: { t: 'div', c: body } });
       })
     });
