@@ -150,10 +150,20 @@ Everything received, newest first. Channel selector, optional 2-second
 auto-refresh, a clear button, and per-entry metadata: arrival time, peer
 address, method, content type, byte count.
 
+Each entry also carries the request headers, collapsed behind a toggle —
+`Content-Length`, `Content-Encoding`, `Transfer-Encoding`, `User-Agent` and
+whatever your firmware set. A good share of embedded HTTP failures are header
+failures rather than body failures. Anything that looks like a credential is
+redacted before it is stored; see `redact_keys` in `config.sample.php`.
+
 Payloads that parse as JSON are shown as a browsable tree with a toggle to the
 exact bytes. **The raw view is not optional** — when a board emits malformed
 JSON or stray whitespace, a prettified view hides the precise bug you are
 chasing.
+
+A body that is not valid UTF-8 — CBOR, protobuf, a compressed frame, or a
+buffer bug — is shown as a hex dump with an ASCII gutter rather than being
+mangled into text or dropped.
 
 ### `send.php`
 

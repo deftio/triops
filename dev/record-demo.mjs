@@ -11,6 +11,7 @@
  * Playwright records webm; the shell wrapper converts it to a GIF with ffmpeg.
  */
 import { chromium } from 'playwright';
+import { request as httpRequest } from 'node:http';
 import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -34,20 +35,57 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * payload — a nested object is what makes the tree view worth showing.
  */
 const SEED = [
-  '23.1',
-  'sensor=temp&value=22.4&id=esp32-01',
+  { body: '23.1', type: 'text/plain' },
+  { body: 'sensor=temp&value=22.4&id=esp32-01', type: 'application/x-www-form-urlencoded' },
 ];
+
+/**
+ * A binary frame: sync bytes, a device id, a reading, a checksum. Not valid
+ * UTF-8, which is the point — JSON cannot carry these bytes, so triops stores
+ * them base64 and the viewer hex-dumps them. Worth showing because it is the
+ * case a generic request bin gets wrong.
+ */
+const BINARY = new Uint8Array([
+  0xAA, 0x55, 0x01, 0x10, 0x65, 0x73, 0x70, 0x33, 0x32, 0x2D,
+  0x30, 0x31, 0x00, 0x0E, 0x01, 0x60, 0xFF, 0xD2, 0x3C, 0x91,
+]);
 
 const LIVE = [
-  '{"device":"pico-w-02","readings":[1.2,3.4,5.6],"battery_v":3.71}',
-  '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}',
+  // Truncated mid-object. A prettified view would hide exactly this.
+  { body: '{"device":"esp32-01","temp_c":22.9,"uptime_s":1058,', type: 'application/json' },
+  { body: '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}',
+    type: 'application/json' },
 ];
 
-async function post(body) {
-  await fetch(`${BASE}/api/ingest.php?channel=lab`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body,
+/**
+ * Posted with node's http module rather than fetch.
+ *
+ * fetch adds accept, accept-language and sec-fetch-* on its own, and since the
+ * inbox now shows headers those would be in the GIF — making a device post look
+ * like a browser request. http.request sends only what it is given, which is
+ * what a board with a 2 KB HTTP client actually puts on the wire.
+ */
+function post(sample) {
+  const url = new URL(`${BASE}/api/ingest.php?channel=lab`);
+  const body = typeof sample.body === 'string' ? Buffer.from(sample.body) : Buffer.from(sample.body);
+
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname + url.search,
+      method: 'POST',
+      headers: {
+        'Host': url.host,
+        'User-Agent': 'ESP32HTTPClient',
+        'Content-Type': sample.type || 'application/json',
+        'Content-Length': body.length,
+        'X-Device-Id': 'esp32-01',
+        'Connection': 'close',
+      },
+    }, (res) => { res.resume(); res.on('end', resolve); });
+    req.on('error', reject);
+    req.end(body);
   });
 }
 
@@ -84,7 +122,7 @@ async function main() {
 
   // A couple already on screen, so the GIF opens on something rather than an
   // empty page.
-  for (const body of SEED) await post(body);
+  for (const sample of SEED) await post(sample);
 
   // --- the take
   const context = await browser.newContext({
@@ -106,10 +144,24 @@ async function main() {
     await sleep(600);
   }
 
-  // Payloads land live, picked up by the page's own auto-refresh.
-  for (const body of LIVE) {
-    await post(body);
-    await sleep(2200);
+  // Payloads land live, picked up by the page's own auto-refresh. Truncated
+  // first, then the rich one, so the tree view is the top card for the beats
+  // that follow.
+  for (const sample of LIVE) {
+    await post(sample);
+    await sleep(2300);
+  }
+
+  // Half of embedded HTTP bugs are header bugs. The inbox records them, and the
+  // panel is collapsed until you want it.
+  const headers = page.locator('details summary').first();
+  if (await headers.count()) {
+    await headers.scrollIntoViewIfNeeded();
+    await sleep(600);
+    await headers.click();
+    await sleep(2400);
+    await headers.click();
+    await sleep(400);
   }
 
   // The beat that distinguishes triops from a generic request bin: the raw
@@ -119,10 +171,17 @@ async function main() {
     await rawBtn.scrollIntoViewIfNeeded();
     await sleep(700);
     await rawBtn.click();
-    await sleep(2200);
+    await sleep(2000);
   }
 
-  await sleep(800);
+  // Close on the binary frame. It arrives last so it lands at the top of the
+  // list and is fully visible: bytes JSON cannot carry, hex-dumped rather than
+  // mangled into text or quietly dropped. This is the frame that says what
+  // triops is for.
+  await post({ body: BINARY, type: 'application/octet-stream' });
+  await sleep(2400);
+  await page.evaluate(() => window.scrollTo({ top: 0 }));
+  await sleep(2600);
   await context.close();
   await browser.close();
   rmSync(profile, { recursive: true, force: true });

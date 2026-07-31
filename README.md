@@ -99,7 +99,7 @@ The inbox and the JSON API sit alongside them:
 | `api/version.php` | Name, version, API integer. No auth — for feature detection |
 | `api/status.php` | Which store is live, is the data directory writable, versions |
 | `api/clear.php` | Empty a channel |
-| `view.php` | The inbox, newest first, parsed with a raw toggle |
+| `view.php` | The inbox: payloads, headers and timing, newest first, raw always one click away |
 | `send.php` | Post a payload from a form, before the hardware exists |
 | `status.php` | The same diagnosis as `api/status.php`, rendered |
 
@@ -145,8 +145,11 @@ HTML pages get a bitwrench UI, a nav bar, and dark mode without writing any CSS.
 triops is built for a bench, a lab network, or a machine behind a VPN.
 
 It has password-protected accounts, CSRF protection on every form, bcrypt
-hashing, and it ships with no default credentials — but it has no rate limiting,
-no audit log, and no hardening against a hostile internet. Do not put it on a
+hashing, and it ships with no default credentials. Anything that looks like a
+credential in a query string or a header is redacted before the request is
+stored, so a key you paste once to test a board does not become permanent
+telemetry. But it has no rate limiting, no audit log, and no hardening against a
+hostile internet. Do not put it on a
 public address and post real data through it. If you must expose it, set
 `ingest_key` in config and put it behind something that terminates TLS.
 

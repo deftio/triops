@@ -106,7 +106,9 @@ mode, so **there is no hand-written CSS in triops** — do not add any.
 
 `app/assets/triops.js` adds what bitwrench cannot know about: `jsonTaco()`
 renders arbitrary JSON as a browsable tree, `payloadTaco()` wraps it with a raw
-toggle, `sanitizeTaco()` strips handlers from device-supplied TACO.
+toggle (and hex-dumps bodies that are not valid UTF-8), and `sanitizeTaco()`
+enforces `docs/taco-wire.schema.json` on device-supplied TACO — an allowlist of
+elements and attributes, not a filter, so anything not named is dropped.
 
 Login and setup are the exception: they emit real HTML forms and work with
 JavaScript disabled, because being locked out of a debug tool by a script error

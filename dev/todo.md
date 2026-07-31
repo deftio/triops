@@ -63,23 +63,31 @@ has to argue for itself.
 
 ---
 
-## Before tagging v0.2.0
+## Shipping checklist
 
 - [x] **GIF recorded** — `./dev/record-demo.sh` drives the real app in a real
       browser with Playwright and converts with ffmpeg, so it can never show a
-      UI that does not exist. Re-run it after any UI change.
-- [ ] set the GitHub repo description and topics:
-      `esp32` `iot` `embedded` `debugging` `php` `self-hosted` `webhook`
-- [ ] social preview image so shared links do not look dead
+      UI that does not exist. Re-run it after any UI change. Re-recorded for
+      0.2.1: it now shows the headers panel and a binary payload hex-dumped,
+      and closes on that frame.
+- [x] GitHub repo description and topics set. `iot-framework`, `login` and
+      `login-system` removed — the first fights the positioning and the other
+      two describe scaffolding rather than the point.
 - [x] GitHub Pages — `pages/` is committed static files served from the branch
       at `/triops/pages/`. No workflow, no settings change.
-- [ ] read `docs/` end to end once more with fresh eyes
-- [ ] push to master — CI reads TRIOPS_VERSION, tags v0.2.0 and publishes.
-      No tag to push by hand; bump the const + changelog section is the release.
+- [x] `docs/` read end to end. Everything 0.2.1 changed is described where it is
+      described: the record shape in `api.md`, the inbox in `endpoints.md`, the
+      helper signatures in `hacking.md`, the sanitiser in `llms.txt`.
+- [x] v0.2.0 and v0.2.1 tagged and published by CI from `TRIOPS_VERSION`.
+- [ ] social preview image so shared links do not look dead. **Web UI only** —
+      Settings → General → Social preview. `gh` cannot upload it. 1280×640.
 
-## After tagging
+## When you want people to see it
 
-- [ ] post it: r/esp32, r/embedded, r/selfhosted, Show HN, Hackaday tip line
+- [ ] post it: Show HN first, then a personal social post, then the Arduino
+      Forum Projects Showcase. r/selfhosted only if the account history makes it
+      natural. Lead with the deployment model — a folder of PHP files on shared
+      hosting — not with a feature list.
 - [ ] link triops from the bitwrench docs as a worked example
 - [x] nothing to file upstream — both apparent bitwrench issues were triops not
       reading the docs. See `dev/bitwrench-notes.md`.

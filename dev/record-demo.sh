@@ -20,9 +20,11 @@ OUT="${ROOT}/dist"
 DATA="$(mktemp -d)"
 
 # Width the GIF is scaled to. GitHub renders README images at ~880px on a wide
-# screen; 900 keeps text crisp without bloating the file.
-WIDTH="${WIDTH:-900}"
-FPS="${FPS:-12}"
+# screen; 820 keeps text crisp — including the hex dump — at about 800 KB.
+# These defaults are what the committed GIF was made with. Change them and the
+# next person's re-record silently produces a different-sized image.
+WIDTH="${WIDTH:-820}"
+FPS="${FPS:-10}"
 
 cleanup() {
     [ -n "${SRV:-}" ] && kill "$SRV" 2>/dev/null
@@ -61,15 +63,21 @@ WEBM="$(find "${OUT}/demo" -name '*.webm' | head -1)"
 
 echo "converting…"
 # Two passes: build a palette from the whole clip, then apply it. Straight
-# webm->gif without this dithers badly on flat UI colours.
+# webm->gif without this bands badly.
+#
+# 64 colours and no dithering, because the UI is flat: a handful of greys, two
+# brand colours, and monospace text. Dithering exists to fake shades that are
+# not in the palette, and on flat colour it only adds noise the encoder then has
+# to store — it doubled the file for no visible gain. This is a README image, so
+# every megabyte is someone's page load.
 ffmpeg -y -loglevel error -i "$WEBM" \
-    -vf "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos,palettegen=stats_mode=diff" \
+    -vf "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos,palettegen=max_colors=64:stats_mode=diff" \
     "${OUT}/palette.png"
 
 GIF="${ROOT}/docs/triops-demo.gif"
 
 ffmpeg -y -loglevel error -i "$WEBM" -i "${OUT}/palette.png" \
-    -lavfi "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" \
+    -lavfi "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=none" \
     "$GIF"
 
 rm -f "${OUT}/palette.png"

@@ -214,14 +214,21 @@ There is no virtual DOM and no automatic re-rendering. You change state and call
 about:
 
 ```js
-triops.jsonTaco(value)      // any JSON -> a browsable tree
-triops.payloadTaco(body)    // the above, plus a raw/parsed toggle
-triops.fmtTime(ts)          // 14:31:07.117
-triops.fmtAgo(ts)           // "3m ago"
+triops.jsonTaco(value)                        // any JSON -> a browsable tree
+triops.payloadTaco(body, key, open, enc)      // the above, plus a raw/parsed toggle
+triops.binaryTaco(base64)                     // hex dump with an ASCII gutter
+triops.sanitizeTaco(node)                     // wire-safe TACO, or null
+triops.fmtTime(ts)                            // 14:31:07.117
+triops.fmtAgo(ts)                             // "3m ago"
 ```
 
 `jsonTaco` is the heart of what triops does: you do not know what shape a device
 will send, so the renderer cannot assume one.
+
+`payloadTaco` takes the entry's `body_encoding` as its fourth argument and hands
+a `base64` body to `binaryTaco`. `key` and `open` keep a raw view open across the
+2-second auto-refresh. `sanitizeTaco` returns `null` when a device-supplied tree
+cannot be rendered safely — treat that as "show the raw payload instead".
 
 ### Learning more
 

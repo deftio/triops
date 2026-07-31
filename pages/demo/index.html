@@ -40,31 +40,50 @@ var loggedIn = false;
 var timer = null;
 
 // Canned payloads, shaped like things a board actually sends: well-formed JSON,
-// a bare sensor reading, form encoding, and one that is malformed on purpose —
-// because that is the case a viewer has to handle honestly.
+// a bare sensor reading, form encoding, one that is malformed on purpose, and
+// one that is not text at all — because those are the cases a viewer has to
+// handle honestly, and they are the reason to use triops rather than a log line.
+//
+// `enc` mirrors the body_encoding field the real API returns. A base64 entry is
+// a body that was not valid UTF-8; the viewer renders it as a hex dump.
 var SAMPLES = [
-  '{"device":"esp32-01","temp_c":22.4,"humidity":41,"uptime_s":1043,"wifi":{"rssi":-58,"ssid":"lab"}}',
-  '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}',
-  '23.1',
-  '{"device":"pico-w-02","readings":[1.2,3.4,5.6],"battery_v":3.71}',
-  '{"device":"esp32-01","temp_c":22.9,"uptime_s":1058,',
-  'sensor=temp&value=22.4&id=esp32-01'
+  { body: '{"device":"esp32-01","temp_c":22.4,"humidity":41,"uptime_s":1043,"wifi":{"rssi":-58,"ssid":"lab"}}' },
+  { body: '{"device":"esp32-01","temp_c":22.6,"humidity":41,"uptime_s":1048,"wifi":{"rssi":-61,"ssid":"lab"}}' },
+  { body: '23.1', ctype: 'text/plain' },
+  { body: 'qlUBEGVzcDMyLTAxAA4BYP/SPJE=', enc: 'base64', bytes: 20, ctype: 'application/octet-stream' },
+  { body: '{"device":"pico-w-02","readings":[1.2,3.4,5.6],"battery_v":3.71}' },
+  { body: '{"device":"esp32-01","temp_c":22.9,"uptime_s":1058,' },
+  { body: 'sensor=temp&value=22.4&id=esp32-01', ctype: 'application/x-www-form-urlencoded' }
 ];
 
 var entries = [];
 var seq = 0;
 
-function addEntry(body) {
-  if (body == null) { body = SAMPLES[seq % SAMPLES.length]; seq++; }
+function addEntry(sample) {
+  if (sample == null) { sample = SAMPLES[seq % SAMPLES.length]; seq++; }
+
+  // Keep the header consistent with whatever the payload claims to be.
+  var device = sample.body.indexOf('pico') > -1 ? 'pico-w-02' : 'esp32-01';
+
   entries.unshift({
     ts: Date.now() / 1000,
     ip: '192.168.1.' + (50 + (seq % 4)),
     method: 'POST',
-    ctype: body.indexOf('=') > -1 && body.indexOf('{') === -1
-      ? 'application/x-www-form-urlencoded' : 'application/json',
-    bytes: body.length,
+    ctype: sample.ctype || 'application/json',
+    bytes: sample.bytes || sample.body.length,
     query: { channel: 'lab' },
-    body: body
+    // Recorded exactly as the real thing records them, redaction included: the
+    // ingest key is sent by the device and never written down.
+    headers: {
+      'Host': '192.168.1.40',
+      'User-Agent': 'ESP32HTTPClient',
+      'Content-Type': sample.ctype || 'application/json',
+      'Content-Length': String(sample.bytes || sample.body.length),
+      'X-Device-Id': device,
+      'X-Triops-Key': '[redacted]'
+    },
+    body: sample.body,
+    body_encoding: sample.enc || 'utf-8'
   });
   if (entries.length > 12) entries.pop();
 }
@@ -166,7 +185,7 @@ function sendBody() {
       bw.makeButton({ text: 'Send', variant: 'primary', onclick: function () {
         var el = document.getElementById('payload');
         var body = (el && el.value.trim()) || '{"device":"demo","temp_c":21.0}';
-        addEntry(body);
+        addEntry({ body: body });
         window.location.hash = '#view';
       }})
     ]}
@@ -229,15 +248,39 @@ function renderEntries() {
     c: entries.map(function (e) {
       var meta = [
         triops.fmtTime(e.ts) + ' (' + triops.fmtAgo(e.ts) + ')',
-        e.method, e.ip, e.bytes + ' bytes', e.ctype
+        e.method, e.ip, e.bytes + ' bytes', e.ctype || 'no content-type'
       ].join('  ·  ');
 
-      return bw.makeCard({
-        content: { t: 'div', c: [
-          { t: 'div', a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.5rem' }, c: meta },
-          triops.payloadTaco(e.body, String(e.ts), expanded)
-        ]}
-      });
+      // Same order as app/view.php: metadata, query, headers, payload. Keep
+      // them in step — this page exists to show what you actually get.
+      var body = [
+        { t: 'div', a: { style: 'font-size:0.8rem;opacity:0.7;margin-bottom:0.4rem' }, c: meta }
+      ];
+
+      if (e.query && Object.keys(e.query).length) {
+        body.push({ t: 'div', a: { style: 'margin-bottom:0.4rem' }, c: [
+          { t: 'strong', c: 'query: ' }, triops.jsonTaco(e.query)
+        ]});
+      }
+
+      if (e.headers && Object.keys(e.headers).length) {
+        body.push({
+          t: 'details',
+          a: { style: 'margin-bottom:0.4rem' },
+          c: [
+            {
+              t: 'summary',
+              a: { style: 'cursor:pointer;font-size:0.85rem;opacity:0.8' },
+              c: Object.keys(e.headers).length + ' headers'
+            },
+            { t: 'div', a: { style: 'margin-top:0.3rem' }, c: triops.jsonTaco(e.headers) }
+          ]
+        });
+      }
+
+      body.push(triops.payloadTaco(e.body, String(e.ts), expanded, e.body_encoding));
+
+      return bw.makeCard({ content: { t: 'div', c: body } });
     })
   });
 }
