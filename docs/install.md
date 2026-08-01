@@ -67,6 +67,28 @@ runs nginx, read the nginx section below first — the `.htaccess` files that
 protect `data/` do nothing there, and you should move the data directory out of
 the web root instead.
 
+## Trying it without installing PHP
+
+Not a deployment — a local runner for a machine that has Docker but no PHP,
+which is now the default on macOS and always was on Windows.
+
+```sh
+docker build -t triops -f docker/Dockerfile .
+docker run --rm -p 8080:8080 -v triops-data:/triops/data triops
+```
+
+`docker volume rm triops-data` throws away the payloads and the account
+together, so you can start clean as often as you like.
+
+It runs `php -S`, which is a development server — single-threaded unless told
+otherwise, and PHP's own documentation says not to serve production from it. The
+image sets `PHP_CLI_SERVER_WORKERS` so a device posting and a browser polling do
+not queue behind each other, which is enough for a bench and not enough for
+anything else. To actually deploy triops, use one of the three above.
+
+[`docker/README.md`](../docker/README.md) covers mounting a config, tailing the
+data, and using a bind mount instead of the volume.
+
 ## From a git clone
 
 The deployable unit is the `app/` directory — nothing else in the repo is needed
@@ -169,6 +191,8 @@ change:
 | `data_dir` | Move storage out of the web root |
 | `store` | Force `ndjson` so you can `tail -f` payloads as they land |
 | `ingest_key` | Require a shared secret on `api/ingest.php` |
+| `allow_taco_render` | Let a device drive the display by posting UI. Off by default — read `docs/api.md` first |
+| `timezone` | Timestamps in something other than UTC |
 | `max_entries_per_channel` | Keep more or less history |
 | `max_payload_bytes` | Accept larger payloads |
 | `redact_keys` | Query and header names whose values are never stored |
@@ -191,8 +215,13 @@ curl -X POST 'http://your-host/triops/api/ingest.php?channel=test' -d 'hello'
 
 ## Upgrading
 
-Replace the `app/` directory but keep your `config.php` and `data/`. There is no
-migration step — 0.2 is the first release with this layout.
+Replace the `app/` directory but keep your `config.php` and `data/`.
+
+There is nothing to run by hand. 0.2.1 added two columns to the SQLite schema
+and moved the database-name marker from `.dbname` to a guarded `dbname.php`;
+both happen on first run, and an existing `.dbname` is carried over and removed.
+Entries stored by an older version are read as `utf-8` with no headers, which is
+what they were.
 
 ## Uninstalling
 

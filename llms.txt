@@ -54,10 +54,17 @@ app/            the deployable unit — the release zip is exactly this director
   api/          JSON endpoints
   templates/    plain.php, api.php, page.php — copy one to add a page
   assets/       bitwrench.umd.min.js (vendored, pinned), triops.js, logos
-  data/         gitignored; sqlite db, ndjson files, users.php
-docs/           markdown
+  data/         gitignored. users.php, ch-*.ndjson.php and their lock files,
+                dbname.php, and the sqlite database. Everything the app writes
+                here is named .php and opens with `<?php exit; ?>` so nothing
+                leaks if the directory is ever served — except the sqlite file,
+                which is binary and cannot carry a guard, which is exactly why
+                its name carries a random suffix and dbname.php is guarded
+docs/           markdown, plus taco-wire.schema.json
 pages/          GitHub Pages site: landing + a JS-mocked demo
-dev/            scratch; ships in nothing
+dev/            smoke test, two TACO checks, the GIF recorder. Ships in nothing
+docker/         a local runner for machines with no PHP. Not a deployment
+                artifact, not a published image; see docker/README.md
 ```
 
 ## How a page is written
@@ -83,18 +90,54 @@ that reaches the filesystem must go through it.
 
 ## Storage
 
-`t_store()` returns a driver implementing `push/last/clear/channels/healthy`.
+`t_store()` returns a driver implementing
+`init/push/last/clear/channels/healthy`.
 
 - **sqlite** (default when `SQLite3` is present) — WAL mode, `busy_timeout`,
   trimmed inside the same transaction as the insert. WAL is required, not
   optional: the viewer polls while devices post, and rollback-journal mode
   throws "database is locked" under exactly that pattern.
-- **ndjson** (fallback, no extensions) — append-only, `flock` + one `fwrite` per
-  record, never read-modify-write. Line 1 of every data file is `<?php exit; ?>`
-  so contents do not leak if the directory is ever served. Compacts at 4× the
-  cap, so it retains between N and 4N.
+- **ndjson** (fallback, no extensions) — append-only, one `fwrite` per record,
+  never read-modify-write. Line 1 of every data file is `<?php exit; ?>` so
+  contents do not leak if the directory is ever served. Compacts at 4× the cap,
+  so it retains between N and 4N.
+
+`init()` opens the store and throws if it cannot, and the factory calls it
+*before* committing to a driver — otherwise "automatic fallback" only covers a
+missing extension and not the read-only directory or full disk that actually
+happen. `status.php` reports which driver won and why the other did not.
+
+The ndjson lock is a separate `ch-NAME.lock.php`, held across append and
+compaction together. It cannot be the data file: compaction ends in a `rename`,
+so a lock on the data file is a lock on an inode about to stop being the data
+file, and writes into it are lost.
 
 Trimming happens on write. There is deliberately no cron and no timer.
+
+## What a stored record looks like
+
+`api/read.php` returns entries shaped like this, and two fields are easy to get
+wrong:
+
+```json
+{ "ts": 1785199996.169, "ip": "192.168.1.55", "method": "POST",
+  "ctype": "application/json", "bytes": 15,
+  "query":   { "channel": "lab", "key": "[redacted]" },
+  "headers": { "User-Agent": "ESP32HTTPClient", "Content-Length": "15" },
+  "body": "{\"temp_c\":22.4}", "body_encoding": "utf-8" }
+```
+
+**`body_encoding` is `utf-8` or `base64`, and you must look at it before using
+`body`.** JSON cannot carry arbitrary bytes, so a body that is not valid UTF-8 —
+CBOR, protobuf, a compressed frame, a buffer with a bug in it — is stored base64
+and labelled. `bytes` is always the length the device actually sent.
+
+**`query` and `headers` are redacted.** Anything whose name matches `redact_keys`
+keeps its name and loses its value. Matching ignores case, dashes and
+underscores, so one entry covers `api_key`, `API-KEY` and `apikey`.
+
+Records written before 0.2.1 have no `headers` and no `body_encoding`; treat them
+as `{}` and `utf-8`.
 
 ## UI
 
@@ -125,6 +168,14 @@ database is corrupt and you can fix a lockout with a text editor. Passwords are
 `password_hash()`. Every state-changing form carries a CSRF token. There are no
 default credentials — first run forces account creation.
 
+Credentials are never written down. The ingest key is accepted as `X-Triops-Key`
+or `?key=`, and either way it is redacted out of the stored record along with
+tokens, passwords, cookies and authorization headers — a debugging tool must not
+turn a secret someone pasted once into permanent telemetry.
+
+triops is built for a bench, a lab network, or a machine behind a VPN. There is
+no rate limiting, no audit log, and no hardening against a hostile internet.
+
 ## Where to read next
 
 - `docs/hacking.md` — add your own page, including a short bitwrench primer
@@ -132,3 +183,5 @@ default credentials — first run forces account creation.
 - `docs/troubleshooting.md` — device posts but nothing appears, etc.
 - `docs/install.md` — nginx, shared hosting, moving the data directory
 - `AGENTS.md` — conventions for editing this repo
+- `CONTRIBUTING.md` — reporting bugs, and what triops deliberately will not do
+- `SECURITY.md` — what counts as a vulnerability in a bench tool, and where to send it

@@ -74,6 +74,22 @@ not, so there is nothing to install either way.
 See [docs/install.md](./docs/install.md) for nginx, shared hosting, and moving
 the data directory out of the web root.
 
+### No PHP on your machine?
+
+macOS stopped shipping it and Windows never did. There is a Dockerfile for a
+quick local runner — **not** a deployment:
+
+```sh
+docker build -t triops -f docker/Dockerfile .
+docker run --rm -p 8080:8080 -v triops-data:/triops/data triops
+```
+
+Open <http://localhost:8080/>, point a board at
+`http://<your-lan-ip>:8080/api/ingest.php`, and when you are done throw the lot
+away with `docker volume rm triops-data` — that clears the stored payloads and
+the account you created in one go. Details in
+[docker/README.md](./docker/README.md).
+
 ## What is in it
 
 The debug endpoints return plain text, deliberately. A device with a 2 KB HTTP
@@ -144,6 +160,9 @@ HTML pages get a bitwrench UI, a nav bar, and dark mode without writing any CSS.
 
 triops is built for a bench, a lab network, or a machine behind a VPN.
 
+Found something exploitable? Do not open a public issue — see
+[SECURITY.md](./SECURITY.md).
+
 It has password-protected accounts, CSRF protection on every form, bcrypt
 hashing, and it ships with no default credentials. Anything that looks like a
 credential in a query string or a header is redacted before the request is
@@ -160,6 +179,13 @@ zero-dependency UI library that builds pages from plain JavaScript objects with
 no build step, which is why triops has a copy vendored in `app/assets/` and still
 works on a network with no internet. If you like how the UI here goes together,
 that is where it comes from.
+
+## Contributing
+
+Bug reports and small fixes are welcome — see
+[CONTRIBUTING.md](./CONTRIBUTING.md). Worth reading first: triops has a
+deliberate ceiling, and `dev/todo.md` lists what was cut on purpose so you do
+not spend an evening on a PR that was never going to land.
 
 ## License
 

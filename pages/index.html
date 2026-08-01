@@ -4,10 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>triops — see what your hardware is actually sending</title>
-<meta name="description" content="A small PHP web server for inspecting what IoT hardware sends over HTTP. Unzip into a web directory and it runs. No dependencies.">
-<meta property="og:title" content="triops">
-<meta property="og:description" content="See what your hardware is actually sending. Unzip into a web directory and it runs.">
+<meta name="description" content="A small PHP web server for inspecting what IoT hardware sends over HTTP. Unzip into a web directory and it runs: no framework, no Composer packages, no build step.">
+<meta property="og:title" content="triops — see what your hardware is actually sending">
+<meta property="og:description" content="Raw bytes, headers and timing from an ESP32, a Pi, anything with HTTP. Unzip into a web directory and it runs.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://deftio.github.io/triops/pages/">
+<meta property="og:image" content="https://deftio.github.io/triops/pages/assets/social-card.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="A triops inbox entry: request headers with the ingest key redacted, and a binary payload shown as a hex dump.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="triops — see what your hardware is actually sending">
+<meta name="twitter:description" content="Raw bytes, headers and timing from an ESP32, a Pi, anything with HTTP. Unzip into a web directory and it runs.">
+<meta name="twitter:image" content="https://deftio.github.io/triops/pages/assets/social-card.png">
 <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
 <!-- Plain files, committed alongside this page. bitwrench and triops.js are
      copies of the ones in app/assets/; CI checks they have not drifted. -->
@@ -85,10 +94,10 @@ bw.DOM('#app', { t: 'div', c: [
     { t: 'img', a: { src: './assets/triops-logo.png', alt: 'triops', style: 'height:84px' } },
     { t: 'h1', a: { style: 'margin:1rem 0 0.5rem' }, c: 'See what your hardware is actually sending.' },
     { t: 'div', a: { style: 'opacity:0.7;font-size:0.9rem;margin-bottom:0.5rem' },
-      c: 'version ' + SITE.version + '  ·  PHP 8.0+  ·  no dependencies' },
+      c: 'version ' + SITE.version + '  ·  PHP 8.0+  ·  no build step' },
     { t: 'p', a: { class: 'triops-prose', style: 'font-size:1.1rem;opacity:0.85' },
       c: 'A small web server for the other end of your device\'s HTTP connection. ' +
-         'Unzip it into a web directory and it runs — no database, no services, no build step, no dependencies.' },
+         'Unzip it into a web directory and it runs — no framework, no Composer packages, no database server, no build system.' },
     { t: 'div', a: { style: 'display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.2rem' }, c: [
       linkButton('Try the demo', './demo/', 'primary'),
       linkButton('GitHub', REPO, 'secondary'),

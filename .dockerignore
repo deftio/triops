@@ -1,0 +1,11 @@
+# Build context for dev/Dockerfile. Only app/ is needed at runtime, and without
+# this the context would include dev/node_modules — hundreds of megabytes of
+# Playwright that never reaches the image.
+*
+!app
+
+# Local state that must never be baked into an image.
+app/config.php
+app/data/*
+!app/data/.htaccess
+!app/data/index.php

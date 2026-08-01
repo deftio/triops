@@ -3,6 +3,86 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/). This project
 uses [semantic versioning](https://semver.org/).
 
+**This file is the release notes.** CI reads `TRIOPS_VERSION`, extracts the
+matching `## [x.y.z]` section, and publishes it verbatim as the body of the
+GitHub release — so write each section for someone deciding whether to upgrade,
+not for someone who could read the diff themselves. Say what broke and what it
+cost them, not which functions moved.
+
+Two consequences worth knowing before you edit it:
+
+- A version bumped without a matching section **fails the build** rather than
+  publishing a release with an empty body. That is deliberate.
+- There is no separate release-notes file and no `[Unreleased]` section. Writing
+  the notes and bumping the version are the same act here — the bump is what
+  triggers the release — so a staging area would only be a second place for the
+  same words to drift.
+
+## [0.2.2] — 2026-07-30
+
+Documentation and presentation. No behaviour change: `app/` is byte-identical to
+0.2.1 apart from one docblock and the version constant, and the API integer is
+still 1. If 0.2.1 is running and working, there is nothing here you need.
+
+### Changed
+
+- **The README GIF was recorded before the features it should be showing.** It
+  now opens the headers panel and closes on a binary payload hex-dumped — the
+  two things 0.2.1 added. Payloads are posted through node's `http` module
+  rather than `fetch`, which was adding `accept-language` and `sec-fetch-*` of
+  its own and making a device post look like a browser request now that the
+  inbox displays headers. 64-colour palette with dithering off, because
+  dithering fakes shades that flat UI colour does not have and doubled the file
+  for nothing: 920 KB → 790 KB despite a longer clip.
+- **The demo mock had drifted from the app it claims to mirror.**
+  `pages/demo/index.html` now renders the query block, the collapsed headers
+  panel and `body_encoding`, and carries a binary sample and a redacted key so
+  both are visible rather than merely documented.
+- Repository description and topics: the description still said "no
+  dependencies", and `iot-framework` was among the topics on a project whose
+  argument is that it is not a framework.
+
+### Fixed in the docs
+
+- `llms.txt` described `sanitizeTaco()` as stripping handlers. It enforces an
+  allowlist against a published schema, and `llms.txt` is the file read to
+  summarise triops, so a stale security claim there travels furthest. It also
+  never described the stored record at all — `body_encoding` and redaction are
+  the two fields a client has to understand, and both are now spelled out.
+- `docs/endpoints.md` did not mention that the inbox records headers or
+  hex-dumps non-UTF-8 bodies.
+- `docs/hacking.md` listed `payloadTaco(body)` with its pre-0.2.1 signature.
+- `README.md`: the inbox row, and credential redaction under Security.
+- `AGENTS.md` listed two checks where CI runs four, and none of the invariants
+  0.2.1 introduced — redaction, body encoding, `json_encode` returning `false`,
+  and schema/renderer drift. Storage gained the two that are easy to break by
+  accident: `init()` has to actually open the store, and the ndjson lock cannot
+  be the data file because compaction renames it.
+- Both files claimed every file in `data/` carries an exit guard. The sqlite
+  database cannot — it is binary — which is the entire reason its filename is
+  randomised and `dbname.php` is guarded separately.
+
+### Added
+
+- CI checks that `docs/api.md` and `app/api/version.php` print the current
+  version. Their example output went stale by hand two releases running, which
+  is what the existing `version.js` drift check exists to prevent.
+- **A social card** at `pages/assets/social-card.png` (1280×640), wired up as
+  `og:image` and `twitter:image` on the landing, demo and docs pages. Links to
+  the site rendered as bare text before this — no image at all — which is a poor
+  showing for a project whose best argument is a picture of it working. The card
+  shows a real inbox entry: device headers with the ingest key redacted, and a
+  binary payload as a hex dump. The same file is the right size to upload as the
+  GitHub repository social preview.
+- **`docker/`** — a Dockerfile and a README for running triops locally on a
+  machine with Docker and no PHP, which is now the default on macOS and always
+  was on Windows. Deliberately not a deployment artifact and deliberately not a
+  published image: it is eight lines you build yourself, so there is nothing in
+  a registry to go stale. The data directory is a volume, so
+  `docker volume rm triops-data` clears the payloads and the account together.
+  Deploying triops still means copying `app/` onto a web server — that has not
+  changed and is the entire point of it.
+
 ## [0.2.1] — 2026-07-28
 
 Correctness and trust boundaries. Nothing here changes the install, the API
@@ -102,6 +182,9 @@ first run.
   was never quite the claim, and the precise version is the more interesting one.
 - Docs lead with `X-Triops-Key` rather than `?key=`. Both still work; a URL ends
   up in access logs, proxy logs and shell history, and a header does not.
+- The landing page still described triops as having "no dependencies" in three
+  places, including its meta description. Same correction as everywhere else:
+  no framework, no Composer packages, no database server, no build system.
 
 ## [0.2.0] — 2026-07-27
 
@@ -207,4 +290,9 @@ that itself now, so installation went from four commands to unzipping a folder.
 
 ## [0.1] — 2020
 
-Initial release.
+Initial release. Never tagged, and never really deployed — 0.2 is a clean break
+from it. Kept here so the security fixes in 0.2.0 have something to refer to.
+
+[0.2.2]: https://github.com/deftio/triops/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/deftio/triops/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/deftio/triops/releases/tag/v0.2.0

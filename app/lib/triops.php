@@ -13,7 +13,7 @@
 declare(strict_types=1);
 
 define('TRIOPS', true);
-define('TRIOPS_VERSION', '0.2.1');
+define('TRIOPS_VERSION', '0.2.2');
 
 // Bumped only on a breaking change to /api. Clients feature-detect on this
 // integer instead of parsing the product version.

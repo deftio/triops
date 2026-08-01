@@ -66,7 +66,7 @@ curl http://host/triops/api/version.php
 
 ```json
 { "ok": true, "api": 1,
-  "data": { "name": "triops", "version": "0.2.1", "api": 1 } }
+  "data": { "name": "triops", "version": "0.2.2", "api": 1 } }
 ```
 
 ---
@@ -236,12 +236,12 @@ wrong, and the same data `status.php` renders.
 
 ```json
 { "ok": true, "api": 1, "data": {
-  "triops_version": "0.2.1",
+  "triops_version": "0.2.2",
   "api_version": 1,
   "php_version": "8.4.6",
   "bitwrench": "2.1.3",
   "store": {
-    "driver": "sqlite", "healthy": true, "error": null,
+    "driver": "sqlite", "healthy": true, "error": null, "fallback_reason": null,
     "sqlite_present": true, "max_entries": 512, "max_payload": 65536
   },
   "data_dir": { "path": "/var/www/triops/data", "exists": true, "writable": true },
@@ -251,6 +251,12 @@ wrong, and the same data `status.php` renders.
   "server_time": "2026-07-27 14:31:07"
 }}
 ```
+
+`fallback_reason` is null when the driver you got is the driver you asked for.
+When it is not — the SQLite3 extension is missing, the data directory is
+read-only, the database will not open — it says why, and `driver` tells you what
+triops fell back to. Silent fallback is the confusing kind: everything works,
+with different retention behaviour, and nothing says so.
 
 ---
 
@@ -280,6 +286,7 @@ Returns `405 method_not_allowed` on GET.
 | `method_not_allowed` | 405 | Wrong HTTP verb |
 | `payload_too_large` | 413 | Body exceeded `max_payload_bytes` |
 | `store_error` | 500 | The storage layer failed; `error` says why |
+| `encode_failed` | 500 | The response could not be encoded as JSON; `error` says why |
 
 ## Adding your own
 

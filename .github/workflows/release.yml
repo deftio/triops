@@ -61,6 +61,7 @@ jobs:
           awk -v v="$version" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/         { exit }
+            on && /^\[[0-9]/       { exit }   # link definitions at the foot of the file
             on                     { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then

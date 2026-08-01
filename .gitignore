@@ -7,6 +7,11 @@ app/data/*
 # build output — releases are attached to GitHub Releases, not committed
 dist/
 
+# local agent scratch — AGENTS.md is the committed copy of these conventions,
+# and three vendor-specific copies of the same rules drift and then contradict
+# each other. Keep a CLAUDE.md locally if your tooling looks for that name.
+CLAUDE.md
+
 # editors / os
 *~
 *.log

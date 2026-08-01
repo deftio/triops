@@ -79,8 +79,10 @@ has to argue for itself.
       described: the record shape in `api.md`, the inbox in `endpoints.md`, the
       helper signatures in `hacking.md`, the sanitiser in `llms.txt`.
 - [x] v0.2.0 and v0.2.1 tagged and published by CI from `TRIOPS_VERSION`.
-- [ ] social preview image so shared links do not look dead. **Web UI only** —
-      Settings → General → Social preview. `gh` cannot upload it. 1280×640.
+- [x] social preview image — `pages/assets/social-card.png`, 1280×640, wired as
+      `og:image` on all three site pages. Regenerate with `dev/make-social-card.py`.
+- [ ] upload that same file as the **GitHub repository** social preview.
+      **Web UI only** — Settings → General → Social preview; `gh` cannot do it.
 
 ## When you want people to see it
 
